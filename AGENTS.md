@@ -85,7 +85,8 @@ The repository is a Rust workspace (Rust 1.88+, Python 3.9+):
 
 ```bash
 cargo build --release                 # target/release/pk; release builds are slow (fat LTO)
-cargo clippy --release -- -D warnings
+cargo fmt --all                       # CI checks formatting
+cargo clippy --release --all-targets -- -D warnings
 cargo test --release                  # unit tests + model reference tests
 
 python -m venv .venv && .venv/bin/pip install maturin pytest

@@ -61,7 +61,7 @@ sample data, and fails if any of them errors.
 
 GitHub Actions runs three workflows from `.github/workflows/`:
 
-- **`ci.yml`**, on every push to `main` and every pull request: clippy (warnings are errors),
+- **`ci.yml`**, on every push to `main` and every pull request: `cargo fmt --check`, clippy (warnings are errors),
   `cargo test --release` on Linux, macOS and Windows, a `cargo check` on Rust 1.88, the Python
   tests against a freshly built wheel on Python 3.9 to 3.13, and the docs checks
   (`docs/check_examples.sh`, an up-to-date `reference/models.md`, and `mkdocs build --strict`).

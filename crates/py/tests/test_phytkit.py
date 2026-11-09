@@ -133,6 +133,7 @@ def test_unknown_keyword_options_are_errors():
     raises("unknown_option", pk.fit, "photosynthesis", LEAF, rows=True)
 
 
+@pytest.mark.skipif(not PK.exists(), reason="build the Rust pk first: cargo build --release")
 def test_module_entry_point_prints_what_the_binary_prints():
     for args in (["li600", "correct", str(LI600), "--sidednes", "2"], ["describe", "fvcb"], ["fit", "--help"]):
         binary = subprocess.run([str(PK), *args], capture_output=True, text=True)

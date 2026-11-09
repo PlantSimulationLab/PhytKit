@@ -51,7 +51,7 @@ def test_run_matches_the_pk_binary(args):
     proc = subprocess.run([str(PK), *args], capture_output=True, text=True)
     try:
         got = pk.run(args)
-    except pk.PhytkitError as e:
+    except pk.PhytKitError as e:
         want = json.loads(proc.stdout)
         fields = {"code": e.code, "message": str(e), "usage": e.usage, "hint": e.hint, "help": e.help}
         assert proc.returncode == 1 and want["error"] == {k: v for k, v in fields.items() if v is not None}
@@ -108,7 +108,7 @@ def test_predict_uses_defaults_for_missing_parameters():
 
 
 def raises(code, fn, *args, **kwargs):
-    with pytest.raises(pk.PhytkitError) as e:
+    with pytest.raises(pk.PhytKitError) as e:
         fn(*args, **kwargs)
     assert e.value.code == code, (e.value.code, str(e.value))
     return e.value

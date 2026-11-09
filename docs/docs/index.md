@@ -1,5 +1,5 @@
 ---
-title: Phytkit
+title: PhytKit
 hide:
   - navigation
   - toc
@@ -7,7 +7,7 @@ hide:
 
 <div class="pk-hero" markdown>
 
-![Phytkit](assets/phytkit_wordmark.png){ .pk-wordmark }
+![PhytKit](assets/phytkit_wordmark.png){ .pk-wordmark }
 
 # Plant physiology model fitting for you and your agent { .pk-tagline }
 
@@ -84,7 +84,7 @@ pip install phytkit
 
 ## Get started
 
-New to Phytkit? Start with **[Install Phytkit](guide/install.md)**, then
+New to PhytKit? Start with **[Install PhytKit](guide/install.md)**, then
 **[Your first fit](guide/first-fit.md)**.
 
 Looking for something specific?

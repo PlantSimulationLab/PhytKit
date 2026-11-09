@@ -6,7 +6,7 @@ potential **ψ**. All five models share two parameters:
 - **θr:** the residual water content.
 - **θs:** the saturated water content.
 
-Phytkit starts them at the driest and wettest measured θ. ψ is in MPa unless
+PhytKit starts them at the driest and wettest measured θ. ψ is in MPa unless
 you say otherwise with `--units` (`kPa`, `bar`, `m` or `cm` of water).
 Suction given as positive is treated as negative ψ, and water content given as
 a percentage is converted to a fraction.

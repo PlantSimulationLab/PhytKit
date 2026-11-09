@@ -20,7 +20,7 @@ temperature are dropped and counted in `warnings`.
 
 LI-6800 files are recognized automatically:
 
-- **`.xlsx` exports:** Phytkit reads the `Measurements` sheet and finds the row
+- **`.xlsx` exports:** PhytKit reads the `Measurements` sheet and finds the row
   holding both `A` and `Ci`.
 - **Native logs:** it reads the `[Data]` block.
 
@@ -40,7 +40,7 @@ In both, it skips the category and units rows and keeps the data rows.
 
 BTA converts VPD to Ds with \(D_s = 1000\,\mathrm{VPD}/P_{atm}\); Medlyn
 converts Ds to kPa the other way. Files from the LI-600 and LI-6800 are read
-directly: Phytkit finds the column-name row and skips the units row.
+directly: PhytKit finds the column-name row and skips the units row.
 
 ## Plant hydraulics
 

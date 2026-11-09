@@ -515,7 +515,7 @@ pub fn command_help(cmd: &Command) -> String {
 }
 
 pub fn overview() -> String {
-    let mut s = String::from("pk — Phytkit: plant physiology model fitting from the command line\n\nCommands\n");
+    let mut s = String::from("pk — PhytKit: plant physiology model fitting from the command line\n\nCommands\n");
     for c in COMMANDS {
         s += &format!("  {:<40}{}\n", usage_line(c), c.summary);
     }

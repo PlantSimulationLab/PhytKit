@@ -1,4 +1,4 @@
-site_name: Phytkit
+site_name: PhytKit
 site_url: https://plantsimulationlab.github.io/PhytKit/
 repo_url: https://github.com/PlantSimulationLab/PhytKit
 repo_name: PlantSimulationLab/PhytKit
@@ -72,7 +72,7 @@ nav:
   - Home: index.md
   - User Guide:
       - guide/index.md
-      - Install Phytkit: guide/install.md
+      - Install PhytKit: guide/install.md
       - Your first fit: guide/first-fit.md
       - Using the command line: guide/command-line.md
       - Scripting with Python: guide/python.md

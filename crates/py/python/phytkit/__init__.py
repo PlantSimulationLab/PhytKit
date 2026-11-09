@@ -14,10 +14,10 @@ from __future__ import annotations
 import os
 from typing import Any, Iterable, Mapping
 
-from ._phytkit import PhytkitError, __version__, fit_arrays, fit_many, models, predict, run
+from ._phytkit import PhytKitError, __version__, fit_arrays, fit_many, models, predict, run
 
 __all__ = [
-    "PhytkitError", "__version__", "concat", "describe", "fit", "fit_arrays", "fit_many",
+    "PhytKitError", "__version__", "concat", "describe", "fit", "fit_arrays", "fit_many",
     "li600_correct", "li600_estimate", "models", "predict", "run",
 ]
 

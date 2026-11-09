@@ -1,7 +1,7 @@
 //! Reading and writing CSV text. The delimiter (comma, tab, semicolon or pipe) is
 //! detected from the first rows, and rows with only blank cells are skipped.
 
-const DELIMITERS: [u8; 4] = [b',', b'\t', b';', b'|'];
+const DELIMITERS: [u8; 4] = *b",\t;|";
 
 fn reader(text: &str, delimiter: u8) -> csv::Reader<&[u8]> {
     csv::ReaderBuilder::new().has_headers(false).flexible(true).delimiter(delimiter).from_reader(text.as_bytes())

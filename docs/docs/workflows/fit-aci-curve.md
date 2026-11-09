@@ -7,10 +7,10 @@ temperature) response data.
 
 A CSV, `.xlsx` or LI-6800 log with columns for **A**, **Ci**, light (**Qabs**
 or **Q**) and leaf temperature (**Tleaf** or **T**). Light should be
-**absorbed** light; Phytkit uses `Qabs` when both are present. Temperatures
+**absorbed** light; PhytKit uses `Qabs` when both are present. Temperatures
 below 200 are read as °C.
 
-Add a **CurveID** column if the file holds several curves. Phytkit then
+Add a **CurveID** column if the file holds several curves. PhytKit then
 applies FvCB's per-curve constraints to each curve separately. LI-6800 logs
 merged with [`pk concat`](merge-li6800-logs.md) have one.
 
@@ -31,7 +31,7 @@ merged with [`pk concat`](merge-li6800-logs.md) have one.
 
 3. Check the result before you use it:
 
-    - `warnings`: did Phytkit use the columns and units you expected?
+    - `warnings`: did PhytKit use the columns and units you expected?
     - `converged`: `false` means it stopped at the iteration limit. Rerun
       with `--max-iter 400` or more.
     - `r2` and `rmse`: how closely the model follows the data.

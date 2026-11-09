@@ -1,4 +1,4 @@
-# Phytkit
+# PhytKit
 
 Plant physiology model fitting, written in Rust: photosynthesis (FvCB C3 and C4, empirical), stomatal conductance (BTA, Medlyn), xylem vulnerability, pressure–volume curves, soil water retention, and LI-600 porometer tools. It comes as a command-line tool, `pk`, and a Python package, `phytkit`.
 
@@ -56,7 +56,7 @@ pk.fit_many("fvcb", [(x1, y1), (x2, y2)], threads=8)                         # p
 pk.predict("fvcb", {"Vcmax25": 90}, {"Ci": ci, "Q": q, "T": t_kelvin})
 ```
 
-Commands return the same structure as `pk`'s JSON, and take the same options as `pk` (`max_iter=400` for `--max-iter 400`). Failures raise `pk.PhytkitError`, with the same `.code`, `.hint` and `.usage` as `pk`'s error object.
+Commands return the same structure as `pk`'s JSON, and take the same options as `pk` (`max_iter=400` for `--max-iter 400`). Failures raise `pk.PhytKitError`, with the same `.code`, `.hint` and `.usage` as `pk`'s error object.
 
 ## Tests
 

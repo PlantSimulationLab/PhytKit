@@ -1,6 +1,6 @@
 # For Developers
 
-Phytkit is a Rust workspace with three crates. These pages cover how it's put
+PhytKit is a Rust workspace with three crates. These pages cover how it's put
 together, how to build and test it, and how to add a model.
 
 - **[Architecture](architecture.md)**: the crates and modules, and how a command flows through them.

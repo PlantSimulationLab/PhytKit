@@ -3,7 +3,7 @@
 The `hydraulics` tool fits two kinds of curve: xylem **vulnerability** to
 embolism, and leaf **pressure–volume** curves.
 
-Water potentials are negative MPa throughout. Phytkit converts the common
+Water potentials are negative MPa throughout. PhytKit converts the common
 alternatives and says so in `warnings`:
 
 - Potentials reported as positive tension are made negative.

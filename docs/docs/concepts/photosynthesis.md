@@ -11,7 +11,7 @@ models are available:
 | Empirical | `empiricalA` | A smooth response surface without a biochemical interpretation |
 
 All three take **Q as absorbed light** (PPFD × leaf absorptance) and **T in
-Kelvin**. When you fit a file, Phytkit prefers a `Qabs` column over `Q`, and
+Kelvin**. When you fit a file, PhytKit prefers a `Qabs` column over `Q`, and
 converts temperatures below 200 from °C to Kelvin.
 
 ## FvCB C3
@@ -47,7 +47,7 @@ The formulation matches PhoTorch. Rubisco kinetic constants (`GammaS25`,
 
 ### Mesophyll conductance
 
-Rubisco sees the chloroplast CO₂ \(C_c\), not \(C_i\). During fitting Phytkit
+Rubisco sees the chloroplast CO₂ \(C_c\), not \(C_i\). During fitting PhytKit
 uses the measured A to set
 
 \[

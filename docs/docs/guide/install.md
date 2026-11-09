@@ -1,8 +1,8 @@
-# Install Phytkit
+# Install PhytKit
 
 ## From PyPI
 
-The quickest way to get Phytkit is the Python package, which also installs
+The quickest way to get PhytKit is the Python package, which also installs
 the `pk` command. It needs Python 3.9 or newer, and has prebuilt wheels for
 Linux, macOS and Windows:
 
@@ -29,7 +29,7 @@ cargo build --release
 ./target/release/pk --help
 ```
 
-The first build downloads Phytkit's Rust dependencies and takes a few
+The first build downloads PhytKit's Rust dependencies and takes a few
 minutes. Later builds are quick.
 
 To run `pk` from anywhere, install it onto your PATH:

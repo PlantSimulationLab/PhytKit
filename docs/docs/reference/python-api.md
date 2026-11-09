@@ -10,7 +10,7 @@ These run `pk` commands and return what `pk` would print: a `dict` for JSON
 output, or a `str` for `format="csv"`. Options are `pk`'s options as keyword
 arguments, with `_` in place of `-` (see
 [Scripting with Python](../guide/python.md#the-same-commands-as-pk)). They
-raise `PhytkitError` on failure.
+raise `PhytKitError` on failure.
 
 | Function | `pk` command |
 |---|---|
@@ -92,7 +92,7 @@ The names of every built-in model.
 
 ## Errors
 
-`PhytkitError`
+`PhytKitError`
 :   Raised by every function. It has the fields of `pk`'s error object:
 
     | Attribute | |

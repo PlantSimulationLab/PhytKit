@@ -21,10 +21,10 @@ options. [Commands](../reference/commands.md) documents every option.
 - **`.xlsx` workbooks**, using the first sheet. For photosynthesis, the
   LI-6800's `Measurements` sheet.
 - **LI-6800 native logs**, the files with no extension that the instrument
-  writes. Phytkit finds the `[Data]` block and the column header itself.
+  writes. PhytKit finds the `[Data]` block and the column header itself.
 - **Standard input**, if you give `-` as the file name.
 
-Phytkit finds the columns it needs by name and accepts common variants, such
+PhytKit finds the columns it needs by name and accepts common variants, such
 as `Psi (MPa)` or `water_potential` for water potential. It also converts
 common units, such as °C to Kelvin, bar to MPa, and a percent to a fraction.
 It reports each choice in `warnings`. See

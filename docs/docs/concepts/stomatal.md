@@ -2,7 +2,7 @@
 
 The `stomatal` tool fits stomatal conductance to water vapour, **gs** (mol
 m⁻² s⁻¹), as measured by the LI-600 or LI-6800 (`gsw`). If the file has a
-`gsw_corrected` column from [the LI-600 correction](li600.md), Phytkit uses it
+`gsw_corrected` column from [the LI-600 correction](li600.md), PhytKit uses it
 instead of `gsw`.
 
 ## Buckley–Turnbull–Adams (2012)
@@ -17,7 +17,7 @@ g_s = \frac{E_m\,(Q + i_0)}{k + b\,Q + (Q + i_0)\,D_s}
 - **Q:** photosynthetic photon flux density.
 - **Ds:** leaf-to-air vapour pressure deficit as a mole fraction, in mmol mol⁻¹.
 
-If your file has VPD in kPa, Phytkit converts it with
+If your file has VPD in kPa, PhytKit converts it with
 \(D_s = 1000\,\mathrm{VPD}/P_{atm}\). It uses a `Patm` column if present, and
 101.325 kPa otherwise. The parameters `Em`, `i0`, `k` and `b` are empirical.
 
@@ -45,7 +45,7 @@ Medlyn to the output of `pk li600 estimate`, which writes `A_solved`.
 ## Units
 
 Conductance above 10 is taken to be in mmol m⁻² s⁻¹ and divided by 1000,
-because leaf conductance in mol m⁻² s⁻¹ rarely exceeds 2. Phytkit reports
+because leaf conductance in mol m⁻² s⁻¹ rarely exceeds 2. PhytKit reports
 every conversion it makes in `warnings`.
 
 See [Fit stomatal conductance](../workflows/fit-stomatal.md).

@@ -16,7 +16,7 @@ use std::collections::HashMap;
 
 create_exception!(
     _phytkit,
-    PhytkitError,
+    PhytKitError,
     PyException,
     "A phytkit command failed. `.code` names the kind of failure (see `describe()[\"errors\"]`), `.hint` says what to do about it, and `.usage` is True when the arguments were wrong."
 );
@@ -49,7 +49,7 @@ fn to_py(py: Python<'_>, v: &Value) -> PyResult<Py<PyAny>> {
 }
 
 /// Run a `pk` command (arguments as on the command line, without `pk`).
-/// Returns a dict for JSON output or a str for CSV and help text; raises PhytkitError on failure.
+/// Returns a dict for JSON output or a str for CSV and help text; raises PhytKitError on failure.
 #[pyfunction]
 fn run(py: Python<'_>, argv: Vec<String>) -> PyResult<Py<PyAny>> {
     let result = py.detach(|| run_cli(&argv));
@@ -75,9 +75,9 @@ fn models() -> Vec<String> {
     builtin_models().iter().map(|m| m.name().to_string()).collect()
 }
 
-/// A `PhytkitError` carrying the error's code, hint and usage flag.
+/// A `PhytKitError` carrying the error's code, hint and usage flag.
 fn py_error(py: Python<'_>, e: CliError, help: Option<String>) -> PyErr {
-    let err = PhytkitError::new_err(e.message);
+    let err = PhytKitError::new_err(e.message);
     let v = err.value(py);
     let set = || -> PyResult<()> {
         v.setattr("code", e.code)?;
@@ -280,7 +280,7 @@ fn _phytkit(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fit_arrays, m)?)?;
     m.add_function(wrap_pyfunction!(fit_many, m)?)?;
     m.add_function(wrap_pyfunction!(predict, m)?)?;
-    m.add("PhytkitError", m.py().get_type::<PhytkitError>())?;
+    m.add("PhytKitError", m.py().get_type::<PhytKitError>())?;
     m.add_function(wrap_pyfunction!(main, m)?)?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     Ok(())

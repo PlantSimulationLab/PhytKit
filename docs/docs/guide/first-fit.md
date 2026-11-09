@@ -1,6 +1,6 @@
 # Your first fit
 
-This page fits the sample A–Ci curves that come with Phytkit, then walks
+This page fits the sample A–Ci curves that come with PhytKit, then walks
 through the result. Run the commands from the `rust` folder.
 
 ## The data
@@ -15,9 +15,9 @@ A,Ci,Qabs,Tleaf,CurveID
 ...
 ```
 
-Phytkit needs four columns for photosynthesis: **A**, **Ci**, light (**Qabs**,
+PhytKit needs four columns for photosynthesis: **A**, **Ci**, light (**Qabs**,
 or **Q**) and leaf temperature (**Tleaf**, or **T**). Other columns are kept but
-ignored. A **CurveID** column tells Phytkit which rows belong to the same
+ignored. A **CurveID** column tells PhytKit which rows belong to the same
 curve. See [Input files](../reference/input-files.md) for the full rules.
 
 ## Fit
@@ -70,9 +70,9 @@ See [Photosynthesis models](../concepts/photosynthesis.md#mesophyll-conductance)
 | `iterations`, `converged` | How the fitter finished; see [How fitting works](../concepts/fitting.md) |
 | `fitted` | The parameters that were optimized |
 | `params` | Every parameter value, fitted or fixed |
-| `warnings` | What Phytkit assumed or changed. Read these. |
+| `warnings` | What PhytKit assumed or changed. Read these. |
 
-The warnings here confirm that Phytkit:
+The warnings here confirm that PhytKit:
 
 - used the columns you expected,
 - read `Tleaf` as °C and converted it to Kelvin, and

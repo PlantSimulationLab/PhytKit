@@ -1,4 +1,4 @@
-# Phytkit
+# PhytKit
 
 Plant physiology model fitting, written in Rust: photosynthesis (FvCB C3 and C4, empirical light
 response), stomatal conductance (BTA, Medlyn), xylem vulnerability, pressure–volume curves, soil
@@ -27,7 +27,7 @@ pk.fit_many("fvcb", [(x1, y1), (x2, y2)], threads=8)                        # pa
 pk.predict("fvcb", {"Vcmax25": 90}, {"Ci": ci, "Q": q, "T": t_kelvin})
 ```
 
-Failures raise `phytkit.PhytkitError`, with a stable `.code` and a `.hint`.
+Failures raise `phytkit.PhytKitError`, with a stable `.code` and a `.hint`.
 
 - Documentation: <https://plantsimulationlab.github.io/PhytKit/>
 - Source and issues: <https://github.com/PlantSimulationLab/PhytKit>

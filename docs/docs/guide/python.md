@@ -3,7 +3,7 @@
 The `phytkit` Python package runs the same code as `pk`. Use it to fit many
 files in a loop, to feed results into pandas or plots, or to fit data you
 already have in memory. Install it as described in
-[Install Phytkit](install.md#the-python-package).
+[Install PhytKit](install.md#the-python-package).
 
 ## The same commands as `pk`
 
@@ -91,13 +91,13 @@ See [Fit many curves at once](../workflows/batch-fitting.md).
 
 ## Errors
 
-Every function raises `phytkit.PhytkitError` on failure, with the same
+Every function raises `phytkit.PhytKitError` on failure, with the same
 fields as `pk`'s error object:
 
 ```python
 try:
     pk.fit("photosynthesis", "examples/aci.csv", fix=["Vcmax"])
-except pk.PhytkitError as e:
+except pk.PhytKitError as e:
     print(e.code)   # unknown_parameter
     print(e)        # --fix Vcmax: fvcb has no parameter "Vcmax".
     print(e.hint)   # Did you mean Vcmax25? Parameters: Vcmax25, Jmax25, ...

@@ -1,6 +1,6 @@
 # Concepts
 
-These pages explain what Phytkit's models are and how it fits them. Read them
+These pages explain what PhytKit's models are and how it fits them. Read them
 when you want to know what a parameter means, why a fit came out the way it
 did, or which model to choose.
 

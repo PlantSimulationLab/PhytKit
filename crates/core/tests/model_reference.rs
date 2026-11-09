@@ -14,8 +14,9 @@ const FIXTURE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/model_ref
 
 // Tolerances. Floating-point results can differ in the last bit between platforms, so
 // values must agree closely rather than exactly. A fit that takes the same number of
-// iterations must reach the same parameters; one that takes a different path (possible
-// where the objective is flat, as with empiricalA) must reach an equally good fit.
+// iterations must reach the same parameters, or an RMSE equal to FIT_PARAM_TOL; one that
+// takes a different path (possible where the objective is flat, as with empiricalA) must
+// reach an equally good fit.
 const PRED_TOL: f64 = 1e-9; // relative to the largest |value| in the output vector
 const ABS_TOL: f64 = 1e-14; // absolute, for outputs that are all near zero (rounding noise)
 const FIT_PARAM_TOL: f64 = 1e-5; // relative, fitted parameters, when both took the same path
@@ -300,7 +301,11 @@ fn models_match_reference_values() {
                 r.rmse,
                 if same_path { "" } else { "  (different path)" }
             ));
-            let ok = tc == r.converged && if same_path { prel <= FIT_PARAM_TOL } else { rmse_rel <= FIT_RMSE_TOL };
+            // Same iteration count usually means the same path, but along a flat direction the
+            // parameters can drift apart even then (empiricalA on Windows/MSVC libm): accept that
+            // only if the fit is equally good to the strict tolerance.
+            let ok = tc == r.converged
+                && (prel <= FIT_PARAM_TOL || rmse_rel <= if same_path { FIT_PARAM_TOL } else { FIT_RMSE_TOL });
             if strict && !ok {
                 errs.push(format!("{name} fit {label}: iters {ti}/{} converged {tc}/{} rmse rel {rmse_rel:e} param rel {prel:e}", r.iterations, r.converged));
             }

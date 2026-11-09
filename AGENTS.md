@@ -1,11 +1,11 @@
 # AGENTS.md
 
-Guidance for AI coding agents, and for people, working with Phytkit, either to fit data with it or
+Guidance for AI coding agents, and for people, working with PhytKit, either to fit data with it or
 to change it.
 
 ## What this project is
 
-Phytkit fits plant physiology models to measured data: photosynthesis (FvCB C3 and C4, empirical
+PhytKit fits plant physiology models to measured data: photosynthesis (FvCB C3 and C4, empirical
 light response), stomatal conductance (BTA, Medlyn), xylem vulnerability curves, pressure–volume
 curves, soil water retention, and the LI-600 porometer energy-balance correction. It is written in
 Rust and comes as a command-line tool, `pk`, and a Python package, `phytkit`
@@ -14,9 +14,9 @@ same JSON.
 
 Documentation: <https://plantsimulationlab.github.io/PhytKit/>, with sources in `docs/docs/`.
 
-## Fitting data with Phytkit
+## Fitting data with PhytKit
 
-1. **Ask the tool, not your memory.** Phytkit is new and your training data likely knows nothing
+1. **Ask the tool, not your memory.** PhytKit is new and your training data likely knows nothing
    about it. `pk describe` lists every tool, model, parameter (with bounds and defaults), soft
    constraint and command option, as JSON. `pk describe <model>` gives one model in full, and
    `pk <command> --help` gives a command's options. Check every model, parameter and option name
@@ -25,7 +25,7 @@ Documentation: <https://plantsimulationlab.github.io/PhytKit/>, with sources in 
    readings, PV curves, ...), which model, which parameters are fixed and at what values, and
    whether curves are fitted one by one (`--group-by`, several files) or together.
 3. **Read the whole output, every time.** Check `ok`, then `converged`, `r2`/`rmse`, and
-   `warnings`. `warnings` reports the columns Phytkit chose, unit conversions it made, and rows it
+   `warnings`. `warnings` reports the columns PhytKit chose, unit conversions it made, and rows it
    dropped. A fit can finish with `ok: true` and still be wrong because the wrong column was used
    or half the rows were dropped. Do not report a result as good until you have read them.
 4. **Look at the fit, not only the statistics.** Use `--predicted` (`predicted=True` in Python) to
@@ -38,7 +38,7 @@ Documentation: <https://plantsimulationlab.github.io/PhytKit/>, with sources in 
 
 Output is a JSON envelope: `{"ok": true, "command": ..., ...}` on success. On failure it is
 `{"ok": false, "error": {"code", "message", "usage", "hint"?, "help"?}}` and `pk` exits with
-status 1; Python raises `phytkit.PhytkitError` with the same `.code`, `.hint` and `.usage`. Error
+status 1; Python raises `phytkit.PhytKitError` with the same `.code`, `.hint` and `.usage`. Error
 codes are stable and listed in `docs/docs/reference/commands.md`. Read `hint`: it often names the
 fix (`Did you mean lightResponse?`). `NaN` and infinite values are written as `null`, and fitted
 values are rounded to six decimals.
@@ -73,7 +73,7 @@ a dict becomes repeated `--flag key=value`).
 - **Only `.xlsx` workbooks are read**, not `.xls`. Date cells are read as ISO 8601 text, so a date
   column cannot be a numeric input.
 
-## Changing Phytkit
+## Changing PhytKit
 
 The repository is a Rust workspace (Rust 1.88+, Python 3.9+):
 

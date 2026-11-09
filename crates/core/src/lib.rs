@@ -1,4 +1,4 @@
-//! Phytkit core: plant physiology models, the fitter, file parsers and LI-600 tools.
+//! PhytKit core: plant physiology models, the fitter, file parsers and LI-600 tools.
 
 // Numeric code here steps through several parallel arrays by index, which reads more
 // clearly than zipped iterators.

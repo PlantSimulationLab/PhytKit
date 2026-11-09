@@ -6,7 +6,7 @@ is needed.
 
 ## Inputs
 
-An LI-600 CSV export. Phytkit finds the column-name row itself, below the
+An LI-600 CSV export. PhytKit finds the column-name row itself, below the
 instrument's category row, and skips the units row. It needs these columns:
 `gsw`, `Tref`, `Tleaf`, `rh_r`, `rh_s`, `flow`, `P_atm` and `E_apparent`.
 

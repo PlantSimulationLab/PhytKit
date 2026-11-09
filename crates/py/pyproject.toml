@@ -8,7 +8,7 @@ description = "Plant physiology model fitting: photosynthesis, stomatal conducta
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-authors = [{ name = "PlantSimulationLab" }]
+authors = [{ name = "Kyle Rizzo" }, { name = "PlantSimulationLab" }]
 keywords = ["plant physiology", "photosynthesis", "FvCB", "stomatal conductance", "curve fitting", "LI-6800", "LI-600"]
 dynamic = ["version"]
 classifiers = [

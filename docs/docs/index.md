@@ -93,3 +93,9 @@ Looking for something specific?
 - **[Concepts](concepts/index.md)** explain the models and how fitting works.
 - **[Reference](reference/index.md)** lists every command, option, model and
   parameter.
+
+## Credits
+
+The original version of PhytKit was developed primarily by Kyle Rizzo
+([@ktrizzo](https://github.com/ktrizzo)). It is maintained by the
+[PlantSimulationLab](https://github.com/PlantSimulationLab).

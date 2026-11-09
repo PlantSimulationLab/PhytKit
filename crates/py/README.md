@@ -32,4 +32,4 @@ Failures raise `phytkit.PhytKitError`, with a stable `.code` and a `.hint`.
 - Documentation: <https://plantsimulationlab.github.io/PhytKit/>
 - Source and issues: <https://github.com/PlantSimulationLab/PhytKit>
 
-MIT licensed.
+Originally developed primarily by Kyle Rizzo ([@ktrizzo](https://github.com/ktrizzo)); maintained by the PlantSimulationLab. MIT licensed.

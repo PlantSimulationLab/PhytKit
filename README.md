@@ -83,6 +83,10 @@ cd docs && ../.docs-venv/bin/mkdocs serve      # then open http://127.0.0.1:8000
 
 Bump `workspace.package.version` in `Cargo.toml`, commit, and push a matching tag (`git tag v0.2.0 && git push origin v0.2.0`). The `Release` workflow builds and tests wheels for Linux (x86_64, aarch64), macOS (arm64, x86_64) and Windows, publishes them to PyPI, and creates a GitHub release.
 
+## Credits
+
+The original version of PhytKit was developed primarily by Kyle Rizzo ([@ktrizzo](https://github.com/ktrizzo)). It is maintained by the [PlantSimulationLab](https://github.com/PlantSimulationLab).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

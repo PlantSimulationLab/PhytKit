@@ -8,13 +8,21 @@ use serde_json::Value;
 /// produces a NaN residual, which the fitter rejects, rather than a finite wrong value.
 #[inline(always)]
 pub fn max(a: f64, b: f64) -> f64 {
-    if a.is_nan() || b.is_nan() { f64::NAN } else { a.max(b) }
+    if a.is_nan() || b.is_nan() {
+        f64::NAN
+    } else {
+        a.max(b)
+    }
 }
 
 /// The smaller of two values, or NaN if either is NaN. See [`max`].
 #[inline(always)]
 pub fn min(a: f64, b: f64) -> f64 {
-    if a.is_nan() || b.is_nan() { f64::NAN } else { a.min(b) }
+    if a.is_nan() || b.is_nan() {
+        f64::NAN
+    } else {
+        a.min(b)
+    }
 }
 
 /// The largest value; `-inf` for an empty slice, NaN if any value is NaN.
@@ -35,12 +43,20 @@ pub fn parse(s: &str) -> f64 {
 /// A number from text, or NaN unless it's finite.
 pub fn parse_finite(s: &str) -> f64 {
     let x = parse(s);
-    if x.is_finite() { x } else { f64::NAN }
+    if x.is_finite() {
+        x
+    } else {
+        f64::NAN
+    }
 }
 
 /// `v` rounded to `digits` decimal places. Non-finite values are returned unchanged.
 pub fn round_to(v: f64, digits: usize) -> f64 {
-    if v.is_finite() { format!("{v:.digits$}").parse().unwrap_or(v) } else { v }
+    if v.is_finite() {
+        format!("{v:.digits$}").parse().unwrap_or(v)
+    } else {
+        v
+    }
 }
 
 /// `v` as text with exactly `digits` decimal places.

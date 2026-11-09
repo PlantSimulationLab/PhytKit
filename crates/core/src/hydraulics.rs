@@ -28,39 +28,132 @@ pub struct ParsedFitData {
 // MPa-named variants are listed before bar-named ones so a file carrying both
 // (e.g. "Psi (MPa)" and "Psi (bar)") prefers the column already in MPa.
 pub const P_ALIASES: &[&str] = &[
-    "P", "Psi (MPa)", "Psi(MPa)", "WP (MPa)", "WP(MPa)", "Psi_MPa", "Psi", "psi", "WP",
-    "water_potential", "waterpotential", "potential", "MPa", "Pressure", "P_MPa", "Pa",
-    "Psi (bar)", "Psi(bar)", "WP (bar)", "Psi_bar",
+    "P",
+    "Psi (MPa)",
+    "Psi(MPa)",
+    "WP (MPa)",
+    "WP(MPa)",
+    "Psi_MPa",
+    "Psi",
+    "psi",
+    "WP",
+    "water_potential",
+    "waterpotential",
+    "potential",
+    "MPa",
+    "Pressure",
+    "P_MPa",
+    "Pa",
+    "Psi (bar)",
+    "Psi(bar)",
+    "WP (bar)",
+    "Psi_bar",
 ];
-pub const PLC_ALIASES: &[&str] = &["PLC", "plc", "loss", "percent_loss", "percentloss", "PLC_pct", "PLCpercent", "pld"];
+pub const PLC_ALIASES: &[&str] = &[
+    "PLC",
+    "plc",
+    "loss",
+    "percent_loss",
+    "percentloss",
+    "PLC_pct",
+    "PLCpercent",
+    "pld",
+];
 const SOIL_EXTRA_PSI_ALIASES: &[&str] = &[
-    "matric_potential", "matricpotential", "matric", "suction", "tension",
-    "pressure_head", "pressurehead", "head", "h", "kPa", "hPa", "cm", "psi_MPa",
+    "matric_potential",
+    "matricpotential",
+    "matric",
+    "suction",
+    "tension",
+    "pressure_head",
+    "pressurehead",
+    "head",
+    "h",
+    "kPa",
+    "hPa",
+    "cm",
+    "psi_MPa",
 ];
 pub const THETA_ALIASES: &[&str] = &[
-    "theta", "θ", "VWC", "vwc", "theta_v", "SWC", "swc", "volumetric_water_content",
-    "vol_water_content", "volwatercontent", "water_content", "watercontent", "moisture",
-    "VMC", "vmc", "WC",
+    "theta",
+    "θ",
+    "VWC",
+    "vwc",
+    "theta_v",
+    "SWC",
+    "swc",
+    "volumetric_water_content",
+    "vol_water_content",
+    "volwatercontent",
+    "water_content",
+    "watercontent",
+    "moisture",
+    "VMC",
+    "vmc",
+    "WC",
 ];
 pub const RWC_ALIASES: &[&str] = &[
-    "RWC", "rwc", "RWC (%)", "RWC(%)", "relative_water_content", "relativewatercontent", "water_content",
-    "watercontent", "RWC_pct", "RWCpercent", "w",
+    "RWC",
+    "rwc",
+    "RWC (%)",
+    "RWC(%)",
+    "relative_water_content",
+    "relativewatercontent",
+    "water_content",
+    "watercontent",
+    "RWC_pct",
+    "RWCpercent",
+    "w",
 ];
-pub const GS_ALIASES: &[&str] =
-    &["gsw_corrected", "gsw", "gs", "gtw", "g_sw", "gvw", "stomatal_conductance", "conductance", "cond", "gs_w"];
-pub const Q_ALIASES: &[&str] = &["Qin", "Qabs", "Q", "PARi", "PPFD", "PAR", "Qamb", "PFD", "light", "Qi", "PARin"];
-pub const VPD_ALIASES: &[&str] =
-    &["VPDleaf", "VPDl", "VpdL", "VPD", "VpdA", "SVPleaf", "leaf_vpd", "vpd_leaf", "VPDL", "D", "Dleaf"];
+pub const GS_ALIASES: &[&str] = &[
+    "gsw_corrected",
+    "gsw",
+    "gs",
+    "gtw",
+    "g_sw",
+    "gvw",
+    "stomatal_conductance",
+    "conductance",
+    "cond",
+    "gs_w",
+];
+pub const Q_ALIASES: &[&str] = &[
+    "Qin", "Qabs", "Q", "PARi", "PPFD", "PAR", "Qamb", "PFD", "light", "Qi", "PARin",
+];
+pub const VPD_ALIASES: &[&str] = &[
+    "VPDleaf", "VPDl", "VpdL", "VPD", "VpdA", "SVPleaf", "leaf_vpd", "vpd_leaf", "VPDL", "D",
+    "Dleaf",
+];
 pub const DS_ALIASES: &[&str] = &["Ds", "D_s"];
-pub const PATM_ALIASES: &[&str] = &["Pa", "Patm", "P_atm", "pressure", "atm_pressure", "press", "Patm_kPa"];
-pub const A_ALIASES: &[&str] = &["A", "A_solved", "Anet", "A_net", "Photo", "assimilation", "An"];
+pub const PATM_ALIASES: &[&str] = &[
+    "Pa",
+    "Patm",
+    "P_atm",
+    "pressure",
+    "atm_pressure",
+    "press",
+    "Patm_kPa",
+];
+pub const A_ALIASES: &[&str] = &[
+    "A",
+    "A_solved",
+    "Anet",
+    "A_net",
+    "Photo",
+    "assimilation",
+    "An",
+];
 pub const CS_ALIASES: &[&str] = &["Cs", "C_s", "CO2_s", "Ca", "CO2_a", "CO2", "Ca_s"];
 /// µmol mol⁻¹.
 pub const CS_DEFAULT: f64 = 420.0;
 
 /// `SOIL_PSI_ALIASES`: `P_ALIASES` followed by the soil-specific names.
 fn soil_psi_aliases() -> Vec<&'static str> {
-    P_ALIASES.iter().chain(SOIL_EXTRA_PSI_ALIASES).copied().collect()
+    P_ALIASES
+        .iter()
+        .chain(SOIL_EXTRA_PSI_ALIASES)
+        .copied()
+        .collect()
 }
 
 /// Runs of whitespace collapsed to one space.
@@ -85,14 +178,29 @@ fn collapse_space(s: &str) -> String {
 /// tissue or qualifier (`Kleaf`, `K_stem`, `k-max`), or `conductance` / `conductivity`.
 fn is_conductance_name(s: &str) -> bool {
     const SUFFIXES: &[&str] = &[
-        "leaf", "stem", "root", "shoot", "branch", "plant", "xylem", "stem_segment", "x", "h", "s", "sat", "max", "tot",
+        "leaf",
+        "stem",
+        "root",
+        "shoot",
+        "branch",
+        "plant",
+        "xylem",
+        "stem_segment",
+        "x",
+        "h",
+        "s",
+        "sat",
+        "max",
+        "tot",
         "total",
     ];
     let l = s.to_ascii_lowercase();
     if l == "conductance" || l == "conductivity" {
         return true;
     }
-    let Some(rest) = l.strip_prefix('k') else { return false };
+    let Some(rest) = l.strip_prefix('k') else {
+        return false;
+    };
     if rest.is_empty() || SUFFIXES.contains(&rest) {
         return true;
     }
@@ -106,7 +214,10 @@ fn is_conductance_name(s: &str) -> bool {
 
 /// The first column named like a hydraulic conductance.
 fn find_conductance_field(fields: &[String]) -> Option<String> {
-    fields.iter().find(|f| is_conductance_name(collapse_space(f).trim())).cloned()
+    fields
+        .iter()
+        .find(|f| is_conductance_name(collapse_space(f).trim()))
+        .cloned()
 }
 
 /// A water-potential column named in bar is converted to MPa.
@@ -115,13 +226,18 @@ fn bar_to_mpa(field: &str, vals: &mut [f64], warnings: &mut Vec<String>) {
         for v in vals.iter_mut() {
             *v /= 10.0;
         }
-        warnings.push(format!("Water potential \"{field}\" looked like bar; converted to MPa (÷10)."));
+        warnings.push(format!(
+            "Water potential \"{field}\" looked like bar; converted to MPa (÷10)."
+        ));
     }
 }
 
 /// `norm`: lowercase, then drop everything but ASCII letters and digits.
 fn norm(s: &str) -> String {
-    s.to_lowercase().chars().filter(|c| c.is_ascii_lowercase() || c.is_ascii_digit()).collect()
+    s.to_lowercase()
+        .chars()
+        .filter(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+        .collect()
 }
 
 struct CsvTable {
@@ -135,11 +251,18 @@ struct CsvTable {
 impl CsvTable {
     /// The first column matching one of `cands`, ignoring case, spaces and punctuation.
     fn find_field(&self, cands: &[&str]) -> Option<String> {
-        cands.iter().find_map(|c| self.by_norm.get(&norm(c)).filter(|h| !h.is_empty()).cloned())
+        cands.iter().find_map(|c| {
+            self.by_norm
+                .get(&norm(c))
+                .filter(|h| !h.is_empty())
+                .cloned()
+        })
     }
     /// The cell in `field` as a number; NaN when missing or not a number.
     fn num(&self, r: &[String], field: &str) -> f64 {
-        self.index.get(field).map_or(f64::NAN, |&j| numbers::parse_finite(Table::cell(r, j)))
+        self.index
+            .get(field)
+            .map_or(f64::NAN, |&j| numbers::parse_finite(Table::cell(r, j)))
     }
 }
 
@@ -163,11 +286,20 @@ fn read_csv(text: &str) -> Result<CsvTable, String> {
     for f in &fields {
         by_norm.entry(norm(f)).or_insert_with(|| f.clone());
     }
-    Ok(CsvTable { fields, rows: table.rows, index, by_norm })
+    Ok(CsvTable {
+        fields,
+        rows: table.rows,
+        index,
+        by_norm,
+    })
 }
 
 fn missing_error(missing: &[String], fields: &[String]) -> String {
-    format!("CSV is missing required column(s): {}. Found columns: {}.", missing.join(", "), fields.join(", "))
+    format!(
+        "CSV is missing required column(s): {}. Found columns: {}.",
+        missing.join(", "),
+        fields.join(", ")
+    )
 }
 
 fn first(aliases: &[&str], n: usize) -> String {
@@ -179,7 +311,10 @@ fn columns(pairs: Vec<(&str, Vec<f64>)>) -> Columns {
 }
 
 fn mapping(pairs: &[(&str, &str)]) -> IndexMap<String, String> {
-    pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+    pairs
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect()
 }
 
 /// Vulnerability curve data: water potential, and PLC or a conductance column.
@@ -188,14 +323,21 @@ pub fn parse_vulnerability(text: &str) -> Result<ParsedFitData, String> {
 
     let p_field = t.find_field(P_ALIASES);
     let plc_field = t.find_field(PLC_ALIASES);
-    let k_field = if plc_field.is_some() { None } else { find_conductance_field(&t.fields) };
+    let k_field = if plc_field.is_some() {
+        None
+    } else {
+        find_conductance_field(&t.fields)
+    };
     let y_field = plc_field.clone().or_else(|| k_field.clone());
     let mut missing = Vec::new();
     if p_field.is_none() {
         missing.push(format!("water potential ({})", first(P_ALIASES, 4)));
     }
     if y_field.is_none() {
-        missing.push(format!("PLC ({}) or conductance (K, Kleaf, Kstem, …)", first(PLC_ALIASES, 3)));
+        missing.push(format!(
+            "PLC ({}) or conductance (K, Kleaf, Kstem, …)",
+            first(PLC_ALIASES, 3)
+        ));
     }
     if !missing.is_empty() {
         return Err(missing_error(&missing, &t.fields));
@@ -229,7 +371,8 @@ pub fn parse_vulnerability(text: &str) -> Result<ParsedFitData, String> {
         for v in p.iter_mut() {
             *v = -*v;
         }
-        warnings.push("Water potential was positive; treated as tension and negated to MPa.".into());
+        warnings
+            .push("Water potential was positive; treated as tension and negated to MPa.".into());
     }
 
     if let Some(plc) = &plc_field {
@@ -238,9 +381,14 @@ pub fn parse_vulnerability(text: &str) -> Result<ParsedFitData, String> {
             let frac = if plc_is_fraction { *v } else { *v / 100.0 };
             *v = 1.0 - frac;
         }
-        warnings.push(format!("Fitting relative conductance K = 1 − PLC/100 from \"{plc}\"."));
+        warnings.push(format!(
+            "Fitting relative conductance K = 1 − PLC/100 from \"{plc}\"."
+        ));
     } else if !(numbers::max_of(&y) > 0.0) {
-        return Err(format!("Conductance column \"{}\" has no positive values to fit.", k_field.as_deref().unwrap()));
+        return Err(format!(
+            "Conductance column \"{}\" has no positive values to fit.",
+            k_field.as_deref().unwrap()
+        ));
     }
     let kmax = numbers::max_of(&y);
 
@@ -264,7 +412,10 @@ pub fn parse_pv_curve(text: &str) -> Result<ParsedFitData, String> {
     let p_field = t.find_field(P_ALIASES);
     let mut missing = Vec::new();
     if w_field.is_none() {
-        missing.push(format!("relative water content ({})", first(RWC_ALIASES, 3)));
+        missing.push(format!(
+            "relative water content ({})",
+            first(RWC_ALIASES, 3)
+        ));
     }
     if p_field.is_none() {
         missing.push(format!("water potential ({})", first(P_ALIASES, 4)));
@@ -301,7 +452,8 @@ pub fn parse_pv_curve(text: &str) -> Result<ParsedFitData, String> {
         for v in y.iter_mut() {
             *v = -*v;
         }
-        warnings.push("Water potential was positive; treated as tension and negated to MPa.".into());
+        warnings
+            .push("Water potential was positive; treated as tension and negated to MPa.".into());
     }
 
     let n = w.len();
@@ -333,15 +485,22 @@ fn strip_instrument_header(text: &str, anchor_aliases: &[&str]) -> String {
             break;
         }
     }
-    let Some(h_idx) = h_idx else { return text.to_string() };
+    let Some(h_idx) = h_idx else {
+        return text.to_string();
+    };
 
     let mut data_start = h_idx + 1;
     let looks_like_units = |row: Option<&Vec<String>>| {
-        let vals: Vec<&String> = row.map(|r| r.iter().filter(|c| !c.trim().is_empty()).collect()).unwrap_or_default();
+        let vals: Vec<&String> = row
+            .map(|r| r.iter().filter(|c| !c.trim().is_empty()).collect())
+            .unwrap_or_default();
         if vals.is_empty() {
             return false;
         }
-        let numeric = vals.iter().filter(|c| numbers::parse(c).is_finite()).count();
+        let numeric = vals
+            .iter()
+            .filter(|c| numbers::parse(c).is_finite())
+            .count();
         (numeric as f64) / (vals.len() as f64) < 0.5
     };
     if looks_like_units(grid.get(data_start)) {
@@ -364,7 +523,11 @@ pub fn parse_stomatal(text: &str) -> Result<ParsedFitData, String> {
     let gs_field = t.find_field(GS_ALIASES);
     let q_field = t.find_field(Q_ALIASES);
     let ds_field = t.find_field(DS_ALIASES);
-    let vpd_field = if ds_field.is_some() { None } else { t.find_field(VPD_ALIASES) };
+    let vpd_field = if ds_field.is_some() {
+        None
+    } else {
+        t.find_field(VPD_ALIASES)
+    };
     let patm_field = t.find_field(PATM_ALIASES);
 
     let mut missing = Vec::new();
@@ -400,7 +563,11 @@ pub fn parse_stomatal(text: &str) -> Result<ParsedFitData, String> {
         } else {
             // VPD (kPa) → Ds (mmol mol⁻¹): Ds = VPD/Patm · 1000.
             let patm = patm_field.as_ref().map_or(f64::NAN, |f| t.num(r, f));
-            let p = if patm.is_finite() && patm > 0.0 { patm } else { 101.325 };
+            let p = if patm.is_finite() && patm > 0.0 {
+                patm
+            } else {
+                101.325
+            };
             ds.push((d_raw / p) * 1000.0);
         }
     }
@@ -420,13 +587,16 @@ pub fn parse_stomatal(text: &str) -> Result<ParsedFitData, String> {
         for v in gs.iter_mut() {
             *v /= 1000.0;
         }
-        warnings.push("Stomatal conductance looked like mmol m⁻² s⁻¹; scaled to mol (÷1000).".into());
+        warnings
+            .push("Stomatal conductance looked like mmol m⁻² s⁻¹; scaled to mol (÷1000).".into());
     }
     if ds_field.is_some() && numbers::max_of(&ds) < 1.0 {
         for v in ds.iter_mut() {
             *v *= 1000.0;
         }
-        warnings.push(format!("Ds \"{d_field}\" looked like mol/mol; scaled to mmol/mol (×1000)."));
+        warnings.push(format!(
+            "Ds \"{d_field}\" looked like mol/mol; scaled to mmol/mol (×1000)."
+        ));
     } else if let Some(vpd) = &vpd_field {
         warnings.push(format!(
             "Converted VPD \"{vpd}\" (kPa) to Ds (mmol/mol){}.",
@@ -457,7 +627,11 @@ pub fn parse_medlyn(text: &str) -> Result<ParsedFitData, String> {
     let a_field = t.find_field(A_ALIASES);
     let cs_field = t.find_field(CS_ALIASES);
     let vpd_field = t.find_field(VPD_ALIASES);
-    let ds_field = if vpd_field.is_some() { None } else { t.find_field(DS_ALIASES) };
+    let ds_field = if vpd_field.is_some() {
+        None
+    } else {
+        t.find_field(DS_ALIASES)
+    };
     let patm_field = t.find_field(PATM_ALIASES);
 
     let mut missing = Vec::new();
@@ -496,7 +670,11 @@ pub fn parse_medlyn(text: &str) -> Result<ParsedFitData, String> {
         } else {
             // Ds (mmol mol⁻¹) → D (kPa): D = Ds·Patm/1000.
             let patm = patm_field.as_ref().map_or(f64::NAN, |f| t.num(r, f));
-            let p = if patm.is_finite() && patm > 0.0 { patm } else { 101.325 };
+            let p = if patm.is_finite() && patm > 0.0 {
+                patm
+            } else {
+                101.325
+            };
             d.push((d_raw * p) / 1000.0);
         }
     }
@@ -520,7 +698,8 @@ pub fn parse_medlyn(text: &str) -> Result<ParsedFitData, String> {
         for v in gs.iter_mut() {
             *v /= 1000.0;
         }
-        warnings.push("Stomatal conductance looked like mmol m⁻² s⁻¹; scaled to mol (÷1000).".into());
+        warnings
+            .push("Stomatal conductance looked like mmol m⁻² s⁻¹; scaled to mol (÷1000).".into());
     }
     if let Some(dsf) = &ds_field {
         warnings.push(format!(
@@ -532,13 +711,20 @@ pub fn parse_medlyn(text: &str) -> Result<ParsedFitData, String> {
         ));
     }
 
-    let cs_name = cs_field.clone().unwrap_or_else(|| format!("{cs_default} (default)"));
+    let cs_name = cs_field
+        .clone()
+        .unwrap_or_else(|| format!("{cs_default} (default)"));
     let n = gs.len();
     Ok(ParsedFitData {
         x: columns(vec![("A", a), ("Cs", cs), ("D", d)]),
         y: gs,
         n,
-        mapping: mapping(&[("gs", &gs_field), ("A", &a_field), ("Cs", &cs_name), ("D", &d_field)]),
+        mapping: mapping(&[
+            ("gs", &gs_field),
+            ("A", &a_field),
+            ("Cs", &cs_name),
+            ("D", &d_field),
+        ]),
         warnings,
         k: None,
         kmax: None,
@@ -622,7 +808,14 @@ mod tests {
 
     #[test]
     fn conductance_names() {
-        for n in ["K", "kleaf", "K_stem", "k-max", "K stem_segment", "Conductivity"] {
+        for n in [
+            "K",
+            "kleaf",
+            "K_stem",
+            "k-max",
+            "K stem_segment",
+            "Conductivity",
+        ] {
             assert!(is_conductance_name(n), "{n}");
         }
         for n in ["Kl", "K__leaf", "conduct", "kPa"] {
@@ -630,10 +823,12 @@ mod tests {
         }
     }
 
-
     #[test]
     fn error_messages_are_specific() {
-        assert_eq!(parse_vulnerability("").unwrap_err(), "No header row found in the CSV.");
+        assert_eq!(
+            parse_vulnerability("").unwrap_err(),
+            "No header row found in the CSV."
+        );
         assert_eq!(
             parse_pv_curve("a,b\n1,2\n").unwrap_err(),
             "CSV is missing required column(s): relative water content (RWC or rwc or RWC (%)), water potential (P or Psi (MPa) or Psi(MPa) or WP (MPa)). Found columns: a, b."

@@ -4,7 +4,11 @@
 const DELIMITERS: [u8; 4] = *b",\t;|";
 
 fn reader(text: &str, delimiter: u8) -> csv::Reader<&[u8]> {
-    csv::ReaderBuilder::new().has_headers(false).flexible(true).delimiter(delimiter).from_reader(text.as_bytes())
+    csv::ReaderBuilder::new()
+        .has_headers(false)
+        .flexible(true)
+        .delimiter(delimiter)
+        .from_reader(text.as_bytes())
 }
 
 fn is_blank(row: &[String]) -> bool {
@@ -55,7 +59,10 @@ where
     R: IntoIterator<Item = S>,
     S: AsRef<str>,
 {
-    let mut w = csv::WriterBuilder::new().flexible(true).terminator(csv::Terminator::Any(b'\n')).from_writer(Vec::new());
+    let mut w = csv::WriterBuilder::new()
+        .flexible(true)
+        .terminator(csv::Terminator::Any(b'\n'))
+        .from_writer(Vec::new());
     for row in rows {
         let cells: Vec<String> = row.into_iter().map(|c| c.as_ref().to_string()).collect();
         // A row with one empty cell would be written as an empty line; quote it instead.
@@ -82,18 +89,30 @@ impl Table {
         if rows.is_empty() {
             return None;
         }
-        let header = rows.remove(0).iter().map(|h| h.trim().to_string()).collect();
+        let header = rows
+            .remove(0)
+            .iter()
+            .map(|h| h.trim().to_string())
+            .collect();
         Some(Table { header, rows })
     }
 
     /// Non-empty column names.
     pub fn names(&self) -> Vec<String> {
-        self.header.iter().filter(|h| !h.is_empty()).cloned().collect()
+        self.header
+            .iter()
+            .filter(|h| !h.is_empty())
+            .cloned()
+            .collect()
     }
 
     /// The column with this name, matched exactly and then ignoring case.
     pub fn index(&self, name: &str) -> Option<usize> {
-        self.header.iter().position(|h| h == name).or_else(|| self.header.iter().position(|h| h.eq_ignore_ascii_case(name)))
+        self.header.iter().position(|h| h == name).or_else(|| {
+            self.header
+                .iter()
+                .position(|h| h.eq_ignore_ascii_case(name))
+        })
     }
 
     /// The trimmed cell, or `""` past the end of a short row.
@@ -108,7 +127,10 @@ mod tests {
 
     #[test]
     fn detects_delimiters_and_skips_blank_rows() {
-        assert_eq!(read_rows("a,b\n1,2\n\n , \n3,4\n"), vec![vec!["a", "b"], vec!["1", "2"], vec!["3", "4"]]);
+        assert_eq!(
+            read_rows("a,b\n1,2\n\n , \n3,4\n"),
+            vec![vec!["a", "b"], vec!["1", "2"], vec!["3", "4"]]
+        );
         assert_eq!(read_rows("a\tb\n1\t2\n")[1], vec!["1", "2"]);
         assert_eq!(read_rows("a;b\n1,5;2\n")[1], vec!["1,5", "2"]);
         assert_eq!(read_rows("\u{feff}\"x, y\",z\n")[0], vec!["x, y", "z"]);

@@ -1,8 +1,8 @@
 //! Pressure-volume curve
 //! (Sack, John & Buckley 2018; Tyree & Hammel 1972).
 
-use crate::numbers;
 use crate::model::{col, get, param, Columns, Model, ParamSpec, Params};
+use crate::numbers;
 use indexmap::IndexMap;
 
 pub fn predict(p: &Params, x: &Columns) -> Vec<f64> {
@@ -29,7 +29,8 @@ impl Pvcurve {
         Pvcurve {
             params: vec![
                 param("πo", 2.0, 0.1, 5.0).describe("osmotic pressure at full turgor (MPa)"),
-                param("wtlp", 0.85, 0.5, 0.99).describe("relative water content at turgor loss point"),
+                param("wtlp", 0.85, 0.5, 0.99)
+                    .describe("relative water content at turgor loss point"),
                 param("ε", 1.0, 1.0, 3.0).describe("wall-elasticity exponent on turgor"),
             ],
         }

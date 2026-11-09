@@ -10,9 +10,9 @@ mod li600;
 pub mod options;
 mod tools;
 
+pub use args::CliError as Error;
 use args::{CliError, Result};
 use options::{command, command_help, did_you_mean, overview, suggest, usage_line, COMMANDS};
-pub use args::CliError as Error;
 use serde_json::{json, Map, Value};
 
 /// A JSON object, in insertion order.
@@ -31,23 +31,38 @@ fn unknown_command(written: &str) -> CliError {
         let sub = written.trim_start_matches("li600").trim();
         let subs = ["correct", "estimate"];
         let (message, guess) = if sub.is_empty() {
-            ("pk li600 needs a subcommand: correct or estimate.".to_string(), None)
+            (
+                "pk li600 needs a subcommand: correct or estimate.".to_string(),
+                None,
+            )
         } else {
-            (format!("Unknown command pk li600 {sub}."), suggest(sub, subs).map(|s| format!("pk li600 {s}")))
+            (
+                format!("Unknown command pk li600 {sub}."),
+                suggest(sub, subs).map(|s| format!("pk li600 {s}")),
+            )
         };
-        return CliError::usage("unknown_command", message).hint(format!("{}Commands: pk li600 correct (fix gsw), pk li600 estimate (solve A).", did_you_mean(guess.as_deref())));
+        return CliError::usage("unknown_command", message).hint(format!(
+            "{}Commands: pk li600 correct (fix gsw), pk li600 estimate (solve A).",
+            did_you_mean(guess.as_deref())
+        ));
     }
     let guess = suggest(written, names.iter().copied()).map(|s| format!("pk {s}"));
     CliError::usage("unknown_command", format!("Unknown command \"{written}\".")).hint(format!(
         "{}Commands: {}. Run \"pk --help\" for an overview.",
         did_you_mean(guess.as_deref()),
-        names.iter().map(|n| format!("pk {n}")).collect::<Vec<_>>().join(", ")
+        names
+            .iter()
+            .map(|n| format!("pk {n}"))
+            .collect::<Vec<_>>()
+            .join(", ")
     ))
 }
 
 /// Run a command line (without the program name).
 pub fn run(argv: &[String]) -> Result<Output> {
-    let Some(first) = argv.first() else { return Ok(Output::Raw(overview())) };
+    let Some(first) = argv.first() else {
+        return Ok(Output::Raw(overview()));
+    };
     if ["--help", "-h", "help"].contains(&first.as_str()) {
         // `pk help fit` is the same as `pk fit --help`.
         return match argv.get(1..).filter(|r| !r.is_empty()) {
@@ -89,9 +104,15 @@ pub fn render(argv: &[String], result: Result<Output>) -> (String, i32) {
     let (value, code) = match result {
         Ok(Output::Raw(raw)) => return (if raw.ends_with('\n') { raw } else { raw + "\n" }, 0),
         Ok(Output::Json(obj)) => (Value::Object(envelope(cmd.as_deref(), obj)), 0),
-        Err(e) => (json!({ "ok": false, "command": cmd, "error": error_json(cmd.as_deref(), &e) }), 1),
+        Err(e) => (
+            json!({ "ok": false, "command": cmd, "error": error_json(cmd.as_deref(), &e) }),
+            1,
+        ),
     };
-    (serde_json::to_string_pretty(&value).unwrap_or_default() + "\n", code)
+    (
+        serde_json::to_string_pretty(&value).unwrap_or_default() + "\n",
+        code,
+    )
 }
 
 /// The `error` object: `code`, `message`, `usage`, and `hint` and `help` when there are any.

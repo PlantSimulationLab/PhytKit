@@ -1,6 +1,5 @@
 //! Peaked Arrhenius temperature response.
 
-
 pub const R_GAS: f64 = 0.008314;
 
 pub fn tresp(t: f64, dha: f64, dhd: f64, topt: f64) -> f64 {

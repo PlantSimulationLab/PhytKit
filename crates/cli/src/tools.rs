@@ -1,9 +1,9 @@
 //! The fitting tools the CLI exposes, with their models,
 //! data-seeded starting values, and unit options.
 
-use phytkit_core::numbers;
 use phytkit_core::model::{Columns, Params};
 use phytkit_core::models::model_by_name;
+use phytkit_core::numbers;
 
 /// Data ready to fit: predictor columns, the response, and what the parser learned.
 #[derive(Clone, Debug, Default)]
@@ -52,21 +52,33 @@ pub struct Tool {
 /// Upper median (`s[n / 2]` of the sorted values); NaN for an empty list.
 fn median(a: &[f64]) -> f64 {
     let mut s = a.to_vec();
-    s.sort_by(|x, y| (x - y).partial_cmp(&0.0).unwrap_or(std::cmp::Ordering::Equal));
+    s.sort_by(|x, y| {
+        (x - y)
+            .partial_cmp(&0.0)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     s.get(s.len() / 2).copied().unwrap_or(f64::NAN)
 }
 
 /// `x`, or `fallback` when `x` is zero or NaN.
 fn or(x: f64, fallback: f64) -> f64 {
-    if x == 0.0 || x.is_nan() { fallback } else { x }
+    if x == 0.0 || x.is_nan() {
+        fallback
+    } else {
+        x
+    }
 }
 
 fn default_of(model: &str, param: &str) -> f64 {
-    model_by_name(model).and_then(|m| m.params().iter().find(|p| p.name == param)).map_or(f64::NAN, |p| p.default)
+    model_by_name(model)
+        .and_then(|m| m.params().iter().find(|p| p.name == param))
+        .map_or(f64::NAN, |p| p.default)
 }
 
 fn abs_psi(d: &FitData) -> Vec<f64> {
-    d.x.get("psi").map(|v| v.iter().map(|x| x.abs()).collect()).unwrap_or_default()
+    d.x.get("psi")
+        .map(|v| v.iter().map(|x| x.abs()).collect())
+        .unwrap_or_default()
 }
 
 fn theta_seed(d: &FitData) -> Params {
@@ -78,7 +90,10 @@ fn theta_seed(d: &FitData) -> Params {
 
 fn seed_bta(d: &FitData) -> Params {
     let mut p = Params::new();
-    p.insert("Em".into(), numbers::max(numbers::max_of(&d.y), default_of("bta", "Em")));
+    p.insert(
+        "Em".into(),
+        numbers::max(numbers::max_of(&d.y), default_of("bta", "Em")),
+    );
     p
 }
 
@@ -92,7 +107,10 @@ fn seed_vulnerability(d: &FitData) -> Params {
 
 fn seed_raats(d: &FitData) -> Params {
     let mut p = theta_seed(d);
-    p.insert("b*".into(), or(median(&abs_psi(d)), default_of("raats", "b*")));
+    p.insert(
+        "b*".into(),
+        or(median(&abs_psi(d)), default_of("raats", "b*")),
+    );
     p
 }
 
@@ -109,11 +127,20 @@ fn seed_brooks_corey(d: &FitData) -> Params {
 fn seed_fractal(d: &FitData) -> Params {
     let mut p = theta_seed(d);
     let med = or(median(&abs_psi(d)), 0.1);
-    p.insert("r_max".into(), numbers::min(1e4, numbers::max(1e-3, 0.2 / med)));
+    p.insert(
+        "r_max".into(),
+        numbers::min(1e4, numbers::max(1e-3, 0.2 / med)),
+    );
     p
 }
 
-const SOIL_UNITS: &[(&str, f64)] = &[("MPa", 1.0), ("kPa", 0.001), ("bar", 0.1), ("m", 0.00980665), ("cm", 0.0000980665)];
+const SOIL_UNITS: &[(&str, f64)] = &[
+    ("MPa", 1.0),
+    ("kPa", 0.001),
+    ("bar", 0.1),
+    ("m", 0.00980665),
+    ("cm", 0.0000980665),
+];
 
 pub static TOOLS: &[Tool] = &[
     Tool {
@@ -172,7 +199,11 @@ pub fn tool_by_name(name: &str) -> Option<&'static Tool> {
 
 /// The LI-600 estimate models (name, label).
 pub fn poro_models() -> &'static [(&'static str, &'static str)] {
-    &[("fvcb", "FvCB C3"), ("fvcbC4", "FvCB C4"), ("empiricalA", "Empirical A")]
+    &[
+        ("fvcb", "FvCB C3"),
+        ("fvcbC4", "FvCB C4"),
+        ("empiricalA", "Empirical A"),
+    ]
 }
 
 fn from_dataset(d: phytkit_core::parse::ParsedDataset) -> FitData {
@@ -205,9 +236,16 @@ pub fn scale_response(d: &mut FitData, factor: f64) {
     for v in d.y.iter_mut() {
         *v *= factor;
     }
-    let a_col = d.mapping.iter().find(|(k, _)| k == "A").map(|(_, v)| v.clone());
+    let a_col = d
+        .mapping
+        .iter()
+        .find(|(k, _)| k == "A")
+        .map(|(_, v)| v.clone());
     if let (Some(cols), Some(a)) = (d.columns.as_mut(), a_col) {
-        let scaled: Vec<f64> = cols.get(&a).map(|v| v.iter().map(|x| x * factor).collect()).unwrap_or_default();
+        let scaled: Vec<f64> = cols
+            .get(&a)
+            .map(|v| v.iter().map(|x| x * factor).collect())
+            .unwrap_or_default();
         cols.insert(a, scaled);
     }
 }

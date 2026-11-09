@@ -22,7 +22,9 @@ pub fn describe_model(name: &str) -> Result<Value> {
         .iter()
         .map(|c| json!({ "key": c.key, "label": c.label, "weight": c.weight, "description": c.description, "perCurve": c.per_curve }))
         .collect();
-    Ok(json!({ "name": m.name(), "inputs": m.inputs(), "params": params, "constraints": constraints, "latex": m.latex() }))
+    Ok(
+        json!({ "name": m.name(), "inputs": m.inputs(), "params": params, "constraints": constraints, "latex": m.latex() }),
+    )
 }
 
 pub fn describe(args: &ParsedArgs) -> Result<Obj> {
@@ -38,7 +40,10 @@ pub fn describe(args: &ParsedArgs) -> Result<Obj> {
             json!({ "name": t.name, "description": t.description, "models": models, "units": units, "batch": true, "rescale": t.photosynthesis })
         })
         .collect();
-    let estimate_models: Vec<Value> = poro_models().iter().map(|(n, l)| json!({ "name": n, "label": l })).collect();
+    let estimate_models: Vec<Value> = poro_models()
+        .iter()
+        .map(|(n, l)| json!({ "name": n, "label": l }))
+        .collect();
     Ok(object(json!({
         "tools": tools,
         "li600": {

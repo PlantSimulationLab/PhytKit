@@ -1,8 +1,8 @@
 //! Medlyn et al. (2011) optimal stomatal
 //! conductance, gs = gs0 + 1.6·(1 + g1/√D)·A/Cs, with D floored at 1e-5 kPa.
 
-use crate::numbers;
 use crate::model::{col, get, param, Columns, Model, ParamSpec, Params};
+use crate::numbers;
 
 const D_MIN: f64 = 1e-5;
 

@@ -7,11 +7,20 @@ use crate::table::Table;
 use indexmap::IndexMap;
 
 /// Accepted column names for each input, in order of preference.
-pub const CANDIDATES: [(&str, &[&str]); 4] = [("A", &["A"]), ("Ci", &["Ci"]), ("Q", &["Qabs", "Q"]), ("T", &["Tleaf", "T"])];
+pub const CANDIDATES: [(&str, &[&str]); 4] = [
+    ("A", &["A"]),
+    ("Ci", &["Ci"]),
+    ("Q", &["Qabs", "Q"]),
+    ("T", &["Tleaf", "T"]),
+];
 
 /// Accepted column names for one input.
 pub fn candidates(key: &str) -> &'static [&'static str] {
-    CANDIDATES.iter().find(|(k, _)| *k == key).map(|(_, c)| *c).unwrap_or(&[])
+    CANDIDATES
+        .iter()
+        .find(|(k, _)| *k == key)
+        .map(|(_, c)| *c)
+        .unwrap_or(&[])
 }
 
 /// A photosynthesis dataset ready to fit.
@@ -32,12 +41,18 @@ pub struct ParsedDataset {
 }
 
 pub fn parse_csv(text: &str) -> Result<ParsedDataset, String> {
-    let table = Table::parse(text).filter(|t| !t.names().is_empty()).ok_or("No header row found in the CSV.")?;
+    let table = Table::parse(text)
+        .filter(|t| !t.names().is_empty())
+        .ok_or("No header row found in the CSV.")?;
     if table.rows.is_empty() {
         return Err("CSV has a header but no data rows.".into());
     }
     let fields = table.names();
-    let find = |cands: &[&str]| cands.iter().find_map(|c| table.header.iter().position(|h| h.eq_ignore_ascii_case(c)));
+    let find = |cands: &[&str]| {
+        cands
+            .iter()
+            .find_map(|c| table.header.iter().position(|h| h.eq_ignore_ascii_case(c)))
+    };
 
     let mut mapping: IndexMap<String, String> = IndexMap::new();
     let mut idx: IndexMap<&str, usize> = IndexMap::new();
@@ -52,10 +67,20 @@ pub fn parse_csv(text: &str) -> Result<ParsedDataset, String> {
         }
     }
     if !missing.is_empty() {
-        return Err(format!("CSV is missing required column(s): {}. Found columns: {}.", missing.join(", "), fields.join(", ")));
+        return Err(format!(
+            "CSV is missing required column(s): {}. Found columns: {}.",
+            missing.join(", "),
+            fields.join(", ")
+        ));
     }
 
-    let column = |j: usize| -> Vec<f64> { table.rows.iter().map(|r| numbers::parse_finite(Table::cell(r, j))).collect() };
+    let column = |j: usize| -> Vec<f64> {
+        table
+            .rows
+            .iter()
+            .map(|r| numbers::parse_finite(Table::cell(r, j)))
+            .collect()
+    };
     let mut columns = Columns::new();
     for (j, name) in table.header.iter().enumerate() {
         if !name.is_empty() && !columns.contains_key(name) {
@@ -67,11 +92,31 @@ pub fn parse_csv(text: &str) -> Result<ParsedDataset, String> {
         "Using A=\"{}\", Ci=\"{}\", light=\"{}\", T=\"{}\".",
         mapping["A"], mapping["Ci"], mapping["Q"], mapping["T"]
     )];
-    let (a, ci, q, t_raw) = (column(idx["A"]), column(idx["Ci"]), column(idx["Q"]), column(idx["T"]));
-    let celsius = t_raw.iter().filter(|v| v.is_finite() && **v < 200.0).count();
-    let t: Vec<f64> = t_raw.iter().map(|&v| if v.is_finite() && v < 200.0 { v + 273.15 } else { v }).collect();
+    let (a, ci, q, t_raw) = (
+        column(idx["A"]),
+        column(idx["Ci"]),
+        column(idx["Q"]),
+        column(idx["T"]),
+    );
+    let celsius = t_raw
+        .iter()
+        .filter(|v| v.is_finite() && **v < 200.0)
+        .count();
+    let t: Vec<f64> = t_raw
+        .iter()
+        .map(|&v| {
+            if v.is_finite() && v < 200.0 {
+                v + 273.15
+            } else {
+                v
+            }
+        })
+        .collect();
     if celsius > 0 {
-        warnings.push(format!("Treated \"{}\" as °C and converted {celsius} value(s) to Kelvin.", mapping["T"]));
+        warnings.push(format!(
+            "Treated \"{}\" as °C and converted {celsius} value(s) to Kelvin.",
+            mapping["T"]
+        ));
     }
 
     let curve_col = find(&["CurveID", "curve"]);
@@ -80,7 +125,10 @@ pub fn parse_csv(text: &str) -> Result<ParsedDataset, String> {
     for (i, row) in table.rows.iter().enumerate() {
         if [a[i], ci[i], q[i], t[i]].iter().all(|v| v.is_finite()) {
             if let Some(j) = curve_col {
-                groups.entry(Table::cell(row, j).to_string()).or_default().push(y.len());
+                groups
+                    .entry(Table::cell(row, j).to_string())
+                    .or_default()
+                    .push(y.len());
             }
             x_ci.push(ci[i]);
             x_q.push(q[i]);
@@ -90,7 +138,9 @@ pub fn parse_csv(text: &str) -> Result<ParsedDataset, String> {
     }
     let dropped = table.rows.len() - y.len();
     if dropped > 0 {
-        warnings.push(format!("Dropped {dropped} row(s) with missing/non-numeric values."));
+        warnings.push(format!(
+            "Dropped {dropped} row(s) with missing/non-numeric values."
+        ));
     }
     if y.is_empty() {
         return Err("No usable numeric rows after cleaning.".into());
@@ -105,7 +155,15 @@ pub fn parse_csv(text: &str) -> Result<ParsedDataset, String> {
     x.insert("Ci".into(), x_ci);
     x.insert("Q".into(), x_q);
     x.insert("T".into(), x_t);
-    Ok(ParsedDataset { n: y.len(), x, y, mapping, columns, curves, warnings })
+    Ok(ParsedDataset {
+        n: y.len(),
+        x,
+        y,
+        mapping,
+        columns,
+        curves,
+        warnings,
+    })
 }
 
 #[cfg(test)]
@@ -124,8 +182,14 @@ mod tests {
 
     #[test]
     fn error_messages_are_specific() {
-        assert_eq!(parse_csv("").unwrap_err(), "No header row found in the CSV.");
-        assert_eq!(parse_csv("A,Ci\n").unwrap_err(), "CSV has a header but no data rows.");
+        assert_eq!(
+            parse_csv("").unwrap_err(),
+            "No header row found in the CSV."
+        );
+        assert_eq!(
+            parse_csv("A,Ci\n").unwrap_err(),
+            "CSV has a header but no data rows."
+        );
         assert_eq!(
             parse_csv("A,Ci,foo\n1,2,3").unwrap_err(),
             "CSV is missing required column(s): Q (Qabs or Q), T (Tleaf or T). Found columns: A, Ci, foo."

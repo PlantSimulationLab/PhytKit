@@ -50,7 +50,9 @@ pub fn predict(p: &Params, x: &Columns) -> Vec<f64> {
     let psi = col(x, "psi");
     let tr = get(p, "θr");
     let ts = get(p, "θs");
-    psi.iter().map(|&v| tr + (ts - tr) * fractal_saturation(p, v)).collect()
+    psi.iter()
+        .map(|&v| tr + (ts - tr) * fractal_saturation(p, v))
+        .collect()
 }
 
 pub struct FractalSwrc {
@@ -63,10 +65,13 @@ impl FractalSwrc {
             params: vec![
                 param("θr", 0.05, 0.0, 0.5).describe("residual volumetric water content"),
                 param("θs", 0.45, 0.1, 1.0).describe("saturated volumetric water content"),
-                param("D", 1.5, 1.001, 1.999).describe("fractal dimension of the pore-size distribution"),
+                param("D", 1.5, 1.001, 1.999)
+                    .describe("fractal dimension of the pore-size distribution"),
                 param("r_max", 5.0, 1e-3, 1e4).describe("maximum equivalent pore radius (µm)"),
                 param("δ", 0.02, 0.0, 0.3).describe("relative adsorptive water-film thickness"),
-                param("L", 0.5, -5.0, 5.0).fixed().describe("Mualem tortuosity exponent (conductivity)"),
+                param("L", 0.5, -5.0, 5.0)
+                    .fixed()
+                    .describe("Mualem tortuosity exponent (conductivity)"),
             ],
         }
     }

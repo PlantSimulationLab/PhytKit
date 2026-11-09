@@ -1,9 +1,9 @@
 //! Bounded Levenberg-Marquardt with Nielsen damping, in scaled
 //! coordinates.
 
-use crate::numbers;
 use crate::linalg::solve_linear;
 use crate::model::{Columns, Model, Params, PenaltyOptions};
+use crate::numbers;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Default, Clone)]
@@ -41,22 +41,48 @@ fn max_abs(v: &[f64]) -> f64 {
 
 pub fn fit(model: &dyn Model, x: &Columns, y: &[f64], opts: &FitOptions) -> FitResult {
     let n_data = y.len();
-    let enabled: Option<HashSet<String>> = opts.constraints.as_ref().map(|c| c.iter().cloned().collect());
+    let enabled: Option<HashSet<String>> = opts
+        .constraints
+        .as_ref()
+        .map(|c| c.iter().cloned().collect());
     let use_penalties = model.has_penalties();
 
-    let mut full: Params = model.params().iter().map(|p| (p.name.to_string(), p.default)).collect();
+    let mut full: Params = model
+        .params()
+        .iter()
+        .map(|p| (p.name.to_string(), p.default))
+        .collect();
     for (k, v) in &opts.init {
         full.insert(k.clone(), *v);
     }
     let free: Vec<String> = match &opts.fit_params {
         Some(f) => f.clone(),
-        None => model.params().iter().filter(|p| !p.fixed).map(|p| p.name.to_string()).collect(),
+        None => model
+            .params()
+            .iter()
+            .filter(|p| !p.fixed)
+            .map(|p| p.name.to_string())
+            .collect(),
     };
     let m = free.len();
     let spec = |nm: &str| model.params().iter().find(|p| p.name == nm);
-    let lb: Vec<f64> = free.iter().map(|nm| spec(nm).and_then(|p| p.lb).unwrap_or(f64::NEG_INFINITY)).collect();
-    let ub: Vec<f64> = free.iter().map(|nm| spec(nm).and_then(|p| p.ub).unwrap_or(f64::INFINITY)).collect();
-    let theta0: Vec<f64> = (0..m).map(|k| clamp(full.get(&free[k]).copied().unwrap_or(f64::NAN), lb[k], ub[k])).collect();
+    let lb: Vec<f64> = free
+        .iter()
+        .map(|nm| spec(nm).and_then(|p| p.lb).unwrap_or(f64::NEG_INFINITY))
+        .collect();
+    let ub: Vec<f64> = free
+        .iter()
+        .map(|nm| spec(nm).and_then(|p| p.ub).unwrap_or(f64::INFINITY))
+        .collect();
+    let theta0: Vec<f64> = (0..m)
+        .map(|k| {
+            clamp(
+                full.get(&free[k]).copied().unwrap_or(f64::NAN),
+                lb[k],
+                ub[k],
+            )
+        })
+        .collect();
     let scale: Vec<f64> = (0..m)
         .map(|k| {
             let v = theta0[k].abs();
@@ -83,11 +109,17 @@ pub fn fit(model: &dyn Model, x: &Columns, y: &[f64], opts: &FitOptions) -> FitR
         }
         p
     };
-    let popts = PenaltyOptions { curves: opts.curves.as_deref(), enabled: enabled.as_ref(), weights: opts.constraint_weights.as_ref() };
+    let popts = PenaltyOptions {
+        curves: opts.curves.as_deref(),
+        enabled: enabled.as_ref(),
+        weights: opts.constraint_weights.as_ref(),
+    };
     let residual = |uu: &[f64]| -> Vec<f64> {
         let p = params_from(uu);
         let pred = model.predict(&p, &xfit);
-        let mut r: Vec<f64> = (0..n_data).map(|i| pred.get(i).copied().unwrap_or(f64::NAN) - y[i]).collect();
+        let mut r: Vec<f64> = (0..n_data)
+            .map(|i| pred.get(i).copied().unwrap_or(f64::NAN) - y[i])
+            .collect();
         if use_penalties {
             if let Some(pen) = model.penalties(&p, &xfit, &popts) {
                 r.extend(pen);
@@ -104,7 +136,10 @@ pub fn fit(model: &dyn Model, x: &Columns, y: &[f64], opts: &FitOptions) -> FitR
             if let Some(jt) = model.jacobian(&params_from(uu), x, &free) {
                 let ok = (0..n_data).all(|i| (0..m).all(|j| jt[i][j].is_finite()));
                 if ok {
-                    return jt.iter().map(|row| row.iter().enumerate().map(|(k, v)| v * scale[k]).collect()).collect();
+                    return jt
+                        .iter()
+                        .map(|row| row.iter().enumerate().map(|(k, v)| v * scale[k]).collect())
+                        .collect();
                 }
             }
         }
@@ -156,7 +191,16 @@ pub fn fit(model: &dyn Model, x: &Columns, y: &[f64], opts: &FitOptions) -> FitR
         iter += 1;
         let mut accepted = false;
         for _ in 0..30 {
-            let alm: Vec<Vec<f64>> = a.iter().enumerate().map(|(p, row)| row.iter().enumerate().map(|(q, v)| if p == q { v + mu } else { *v }).collect()).collect();
+            let alm: Vec<Vec<f64>> = a
+                .iter()
+                .enumerate()
+                .map(|(p, row)| {
+                    row.iter()
+                        .enumerate()
+                        .map(|(q, v)| if p == q { v + mu } else { *v })
+                        .collect()
+                })
+                .collect();
             let neg_g: Vec<f64> = g.iter().map(|v| -v).collect();
             let delta = match solve_linear(&alm, &neg_g) {
                 Some(d) => d,
@@ -174,14 +218,20 @@ pub fn fit(model: &dyn Model, x: &Columns, y: &[f64], opts: &FitOptions) -> FitR
                 converged = true;
                 break;
             }
-            let cand: Vec<f64> = (0..m).map(|k| clamp(u[k] + delta[k], lb_u[k], ub_u[k])).collect();
+            let cand: Vec<f64> = (0..m)
+                .map(|k| clamp(u[k] + delta[k], lb_u[k], ub_u[k]))
+                .collect();
             let rc = residual(&cand);
             let cc = sse(&rc);
             let mut pred_red = 0.0;
             for k in 0..m {
                 pred_red += delta[k] * (mu * delta[k] - g[k]);
             }
-            let rho = if pred_red > 0.0 { (cost - cc) / pred_red } else { -1.0 };
+            let rho = if pred_red > 0.0 {
+                (cost - cc) / pred_red
+            } else {
+                -1.0
+            };
             if rho > 0.0 {
                 u = cand;
                 r = rc;
@@ -228,7 +278,11 @@ pub fn fit(model: &dyn Model, x: &Columns, y: &[f64], opts: &FitOptions) -> FitR
         fitted: free,
         predicted,
         rmse: (data_sse / n_data as f64).sqrt(),
-        r2: if sstot > 0.0 { 1.0 - data_sse / sstot } else { f64::NAN },
+        r2: if sstot > 0.0 {
+            1.0 - data_sse / sstot
+        } else {
+            f64::NAN
+        },
         iterations: iter,
         converged,
     }

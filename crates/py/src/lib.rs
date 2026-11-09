@@ -3,7 +3,6 @@
 
 use phytkit_cli::options::{unknown_constraint, unknown_model, unknown_parameter};
 use phytkit_cli::{envelope, run as run_cli, Error as CliError, Output};
-use serde_json::Value;
 use phytkit_core::model::{Columns, Params};
 use phytkit_core::models::{builtin_models, model_by_name};
 use phytkit_core::{fit, FitOptions, FitResult};
@@ -12,6 +11,7 @@ use pyo3::exceptions::{PyException, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use rayon::prelude::*;
+use serde_json::Value;
 use std::collections::HashMap;
 
 create_exception!(
@@ -28,7 +28,12 @@ fn to_py(py: Python<'_>, v: &Value) -> PyResult<Py<PyAny>> {
         Value::Bool(b) => b.into_pyobject(py)?.to_owned().into_any().unbind(),
         Value::Number(n) => match n.as_i64() {
             Some(i) => i.into_pyobject(py)?.into_any().unbind(),
-            None => n.as_f64().unwrap_or(f64::NAN).into_pyobject(py)?.into_any().unbind(),
+            None => n
+                .as_f64()
+                .unwrap_or(f64::NAN)
+                .into_pyobject(py)?
+                .into_any()
+                .unbind(),
         },
         Value::String(s) => s.into_pyobject(py)?.into_any().unbind(),
         Value::Array(a) => {
@@ -55,9 +60,16 @@ fn run(py: Python<'_>, argv: Vec<String>) -> PyResult<Py<PyAny>> {
     let result = py.detach(|| run_cli(&argv));
     match result {
         Ok(Output::Raw(s)) => Ok(s.into_pyobject(py)?.into_any().unbind()),
-        Ok(Output::Json(obj)) => to_py(py, &Value::Object(envelope(phytkit_cli::command_name(&argv).as_deref(), obj))),
+        Ok(Output::Json(obj)) => to_py(
+            py,
+            &Value::Object(envelope(phytkit_cli::command_name(&argv).as_deref(), obj)),
+        ),
         Err(e) => {
-            let help = phytkit_cli::options::command(&phytkit_cli::command_name(&argv).unwrap_or_default()).filter(|_| e.usage).map(phytkit_cli::options::usage_line);
+            let help = phytkit_cli::options::command(
+                &phytkit_cli::command_name(&argv).unwrap_or_default(),
+            )
+            .filter(|_| e.usage)
+            .map(phytkit_cli::options::usage_line);
             Err(py_error(py, e, help))
         }
     }
@@ -72,7 +84,10 @@ fn main(py: Python<'_>, argv: Vec<String>) -> (String, i32) {
 /// Names of the built-in models.
 #[pyfunction]
 fn models() -> Vec<String> {
-    builtin_models().iter().map(|m| m.name().to_string()).collect()
+    builtin_models()
+        .iter()
+        .map(|m| m.name().to_string())
+        .collect()
 }
 
 /// A `PhytKitError` carrying the error's code, hint and usage flag.
@@ -100,7 +115,11 @@ fn model(name: &str) -> PyResult<&'static dyn phytkit_core::Model> {
 }
 
 /// Reject parameter and constraint names the model doesn't have, rather than ignore them.
-fn check_names(m: &dyn phytkit_core::Model, label: &str, names: impl IntoIterator<Item = String>) -> PyResult<()> {
+fn check_names(
+    m: &dyn phytkit_core::Model,
+    label: &str,
+    names: impl IntoIterator<Item = String>,
+) -> PyResult<()> {
     let known: Vec<&str> = m.params().iter().map(|p| p.name).collect();
     for n in names {
         if !known.contains(&n.as_str()) {
@@ -110,7 +129,11 @@ fn check_names(m: &dyn phytkit_core::Model, label: &str, names: impl IntoIterato
     Ok(())
 }
 
-fn check_constraints(m: &dyn phytkit_core::Model, label: &str, keys: impl IntoIterator<Item = String>) -> PyResult<()> {
+fn check_constraints(
+    m: &dyn phytkit_core::Model,
+    label: &str,
+    keys: impl IntoIterator<Item = String>,
+) -> PyResult<()> {
     let known: Vec<&str> = m.constraints().iter().map(|c| c.key).collect();
     for k in keys {
         if !known.contains(&k.as_str()) {
@@ -168,11 +191,26 @@ fn options(
     check_names(m, "fit_params", fit_params.iter().flatten().cloned())?;
     check_names(m, "init", init.keys().cloned())?;
     check_constraints(m, "constraints", constraints.iter().flatten().cloned())?;
-    check_constraints(m, "constraint_weights", constraint_weights.iter().flat_map(|w| w.keys().cloned()))?;
+    check_constraints(
+        m,
+        "constraint_weights",
+        constraint_weights.iter().flat_map(|w| w.keys().cloned()),
+    )?;
     if max_iter == Some(0) {
-        return Err(fail(CliError::usage("invalid_value", "max_iter must be at least 1.")));
+        return Err(fail(CliError::usage(
+            "invalid_value",
+            "max_iter must be at least 1.",
+        )));
     }
-    Ok(FitOptions { fit_params, init, max_iter, curves, constraints, constraint_weights, ..Default::default() })
+    Ok(FitOptions {
+        fit_params,
+        init,
+        max_iter,
+        curves,
+        constraints,
+        constraint_weights,
+        ..Default::default()
+    })
 }
 
 /// Every model input is present, and (with `y`) has one value per observation.
@@ -184,14 +222,34 @@ fn check_inputs(m: &dyn phytkit_core::Model, x: &Columns, y: Option<&[f64]>) -> 
                 let given: Vec<&str> = x.keys().map(String::as_str).collect();
                 let guess = phytkit_cli::options::suggest(name, given.iter().copied());
                 let hint = match guess {
-                    Some(g) => format!("Rename \"{g}\" to \"{name}\". {} reads: {}.", m.name(), inputs.join(", ")),
+                    Some(g) => format!(
+                        "Rename \"{g}\" to \"{name}\". {} reads: {}.",
+                        m.name(),
+                        inputs.join(", ")
+                    ),
                     None => format!("{} reads: {}.", m.name(), inputs.join(", ")),
                 };
-                return Err(fail(CliError::usage("missing_input", format!("x has no \"{name}\" column, which {} needs.", m.name())).hint(hint)));
+                return Err(fail(
+                    CliError::usage(
+                        "missing_input",
+                        format!("x has no \"{name}\" column, which {} needs.", m.name()),
+                    )
+                    .hint(hint),
+                ));
             }
             Some(c) => {
                 if let Some(y) = y.filter(|y| y.len() != c.len()) {
-                    return Err(fail(CliError::usage("invalid_value", format!("x[\"{name}\"] has {} values but y has {}.", c.len(), y.len())).hint("Give one value per observation in every column and in y.")));
+                    return Err(fail(
+                        CliError::usage(
+                            "invalid_value",
+                            format!(
+                                "x[\"{name}\"] has {} values but y has {}.",
+                                c.len(),
+                                y.len()
+                            ),
+                        )
+                        .hint("Give one value per observation in every column and in y."),
+                    ));
                 }
             }
         }
@@ -222,7 +280,15 @@ fn fit_arrays<'py>(
     let m = model(model_name)?;
     let cols = columns(x)?;
     check_inputs(m, &cols, Some(&y))?;
-    let opts = options(m, fit_params, init, max_iter, curves, constraints, constraint_weights)?;
+    let opts = options(
+        m,
+        fit_params,
+        init,
+        max_iter,
+        curves,
+        constraints,
+        constraint_weights,
+    )?;
     let r = py.detach(|| fit(m, &cols, &y, &opts));
     result_dict(py, &r)
 }
@@ -250,9 +316,21 @@ fn fit_many<'py>(
         check_inputs(m, &cols, Some(y))?;
         data.push((cols, y.clone()));
     }
-    let opts = options(m, fit_params, init, max_iter, None, constraints, constraint_weights)?;
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(threads.unwrap_or(0)).build().map_err(|e| PyValueError::new_err(e.to_string()))?;
-    let results: Vec<FitResult> = py.detach(|| pool.install(|| data.par_iter().map(|(x, y)| fit(m, x, y, &opts)).collect()));
+    let opts = options(
+        m,
+        fit_params,
+        init,
+        max_iter,
+        None,
+        constraints,
+        constraint_weights,
+    )?;
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(threads.unwrap_or(0))
+        .build()
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let results: Vec<FitResult> =
+        py.detach(|| pool.install(|| data.par_iter().map(|(x, y)| fit(m, x, y, &opts)).collect()));
     let out = PyList::empty(py);
     for r in &results {
         out.append(result_dict(py, r)?)?;
@@ -262,9 +340,17 @@ fn fit_many<'py>(
 
 /// Model predictions for a parameter set (missing parameters take their defaults).
 #[pyfunction]
-fn predict(model_name: &str, params_: &Bound<'_, PyDict>, x: &Bound<'_, PyDict>) -> PyResult<Vec<f64>> {
+fn predict(
+    model_name: &str,
+    params_: &Bound<'_, PyDict>,
+    x: &Bound<'_, PyDict>,
+) -> PyResult<Vec<f64>> {
     let m = model(model_name)?;
-    let mut p: Params = m.params().iter().map(|s| (s.name.to_string(), s.default)).collect();
+    let mut p: Params = m
+        .params()
+        .iter()
+        .map(|s| (s.name.to_string(), s.default))
+        .collect();
     let given = params(Some(params_))?;
     check_names(m, "params", given.keys().cloned())?;
     p.extend(given);

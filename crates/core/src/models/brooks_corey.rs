@@ -29,7 +29,9 @@ impl BrooksCorey {
                 param("θs", 0.45, 0.1, 1.0).describe("saturated volumetric water content"),
                 param("ψb", 0.03, 1e-5, 1e4).describe("air-entry (bubbling) potential (ψ units)"),
                 param("λ", 0.5, 0.05, 10.0).describe("pore-size distribution index"),
-                param("L", 0.5, -5.0, 5.0).fixed().describe("Mualem tortuosity exponent (conductivity)"),
+                param("L", 0.5, -5.0, 5.0)
+                    .fixed()
+                    .describe("Mualem tortuosity exponent (conductivity)"),
             ],
         }
     }

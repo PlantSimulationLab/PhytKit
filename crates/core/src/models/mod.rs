@@ -4,20 +4,20 @@
 //! empiricalA, fvcb, fvcbC4, vulnerability, pvcurve, vanGenuchten, modifiedVanGenuchten,
 //! raats, brooksCorey, fractalSWRC, bta, medlyn, lightResponse.
 
-pub mod fvcb;
-pub mod smooth_min;
-pub mod empirical_a;
-pub mod fvcb_c4;
-pub mod vulnerability;
-pub mod pvcurve;
-pub mod van_genuchten;
-pub mod modified_van_genuchten;
-pub mod raats;
 pub mod brooks_corey;
-pub mod fractal_swrc;
 pub mod bta;
-pub mod medlyn;
+pub mod empirical_a;
 pub mod example_light_response;
+pub mod fractal_swrc;
+pub mod fvcb;
+pub mod fvcb_c4;
+pub mod medlyn;
+pub mod modified_van_genuchten;
+pub mod pvcurve;
+pub mod raats;
+pub mod smooth_min;
+pub mod van_genuchten;
+pub mod vulnerability;
 
 pub use empirical_a::empirical_a_jacobian;
 pub use fractal_swrc::{fractal_saturation, fractal_suction};
@@ -48,5 +48,8 @@ pub fn builtin_models() -> &'static [Box<dyn Model>] {
 }
 
 pub fn model_by_name(name: &str) -> Option<&'static dyn Model> {
-    builtin_models().iter().find(|m| m.name() == name).map(|b| b.as_ref())
+    builtin_models()
+        .iter()
+        .find(|m| m.name() == name)
+        .map(|b| b.as_ref())
 }

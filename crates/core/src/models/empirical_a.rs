@@ -4,7 +4,9 @@
 //! The dual-number Jacobian is exported but not attached to the
 //! model, so `fit` uses finite differences.
 
-use crate::dual::{d_add, d_add_s, d_const, d_div, d_mul, d_mul_s, d_s_div, d_s_sub, d_sub, d_var, Dual};
+use crate::dual::{
+    d_add, d_add_s, d_const, d_div, d_mul, d_mul_s, d_s_div, d_s_sub, d_sub, d_var, Dual,
+};
 use crate::model::{col, get, param, Columns, Model, ParamSpec, Params};
 use crate::tresp::R_GAS;
 use std::collections::HashMap;
@@ -14,16 +16,28 @@ fn at(v: &[f64], i: usize) -> f64 {
     v.get(i).copied().unwrap_or(f64::NAN)
 }
 
-pub use crate::tresp::tresp;
 use crate::dual::{d_exp, d_log};
+pub use crate::tresp::tresp;
 
 /// Dual-number version of `tresp` (T is a constant).
 fn tresp_dual(t: f64, dha: &Dual, dhd: &Dual, topt: &Dual) -> Dual {
     let rinv = 1.0 / R_GAS;
     let c = d_log(&d_add_s(&d_div(dhd, dha), -1.0));
     let a1 = d_mul_s(dhd, rinv);
-    let num = d_add_s(&d_exp(&d_sub(&d_mul(&a1, &d_add_s(&d_s_div(1.0, topt), -1.0 / 298.0)), &c)), 1.0);
-    let den = d_add_s(&d_exp(&d_sub(&d_mul(&a1, &d_add_s(&d_s_div(1.0, topt), -1.0 / t)), &c)), 1.0);
+    let num = d_add_s(
+        &d_exp(&d_sub(
+            &d_mul(&a1, &d_add_s(&d_s_div(1.0, topt), -1.0 / 298.0)),
+            &c,
+        )),
+        1.0,
+    );
+    let den = d_add_s(
+        &d_exp(&d_sub(
+            &d_mul(&a1, &d_add_s(&d_s_div(1.0, topt), -1.0 / t)),
+            &c,
+        )),
+        1.0,
+    );
     let front = d_exp(&d_mul_s(dha, rinv * (1.0 / 298.0 - 1.0 / t)));
     d_mul(&front, &d_div(&num, &den))
 }
@@ -52,12 +66,22 @@ pub fn empirical_a_jacobian(p_in: &Params, x: &Columns, wrt: &[String]) -> Vec<V
     let (amax25, rd25, gamma_s25) = (par("Amax25"), par("Rd25"), par("GammaS25"));
     let (kco25, kq25) = (par("Kco25"), par("Kq25"));
     let (amax_dha, amax_dhd, amax_topt) = (par("Amax_dHa"), par("Amax_dHd"), par("Amax_Topt"));
-    let (rd_dha, gamma_s_dha, kq_dha, kco_dha) = (par("Rd_dHa"), par("GammaS_dHa"), par("Kq_dHa"), par("Kco_dHa"));
+    let (rd_dha, gamma_s_dha, kq_dha, kco_dha) = (
+        par("Rd_dHa"),
+        par("GammaS_dHa"),
+        par("Kq_dHa"),
+        par("Kco_dHa"),
+    );
     let gm = par("gm");
     let use_gm = gm.v > 0.0 && gm.v < 99.0;
 
     let amax_var = is_v("Amax_dHa") || is_v("Amax_dHd") || is_v("Amax_Topt");
-    let (kco_var, kq_var, gam_var, rd_var) = (is_v("Kco_dHa"), is_v("Kq_dHa"), is_v("GammaS_dHa"), is_v("Rd_dHa"));
+    let (kco_var, kq_var, gam_var, rd_var) = (
+        is_v("Kco_dHa"),
+        is_v("Kq_dHa"),
+        is_v("GammaS_dHa"),
+        is_v("Rd_dHa"),
+    );
     let (d500, d1000) = (d_const(500.0, m), d_const(1000.0, m));
 
     let (ci, q, t) = (col(x, "Ci"), col(x, "Q"), col(x, "T"));
@@ -68,7 +92,15 @@ pub fn empirical_a_jacobian(p_in: &Params, x: &Columns, wrt: &[String]) -> Vec<V
         let a_t = if amax_var {
             d_mul(&amax25, &tresp_dual(ti, &amax_dha, &amax_dhd, &amax_topt))
         } else {
-            d_mul_s(&amax25, tresp(ti, get(&p, "Amax_dHa"), get(&p, "Amax_dHd"), get(&p, "Amax_Topt")))
+            d_mul_s(
+                &amax25,
+                tresp(
+                    ti,
+                    get(&p, "Amax_dHa"),
+                    get(&p, "Amax_dHd"),
+                    get(&p, "Amax_Topt"),
+                ),
+            )
         };
         let kco = if kco_var {
             d_mul(&kco25, &tresp_dual(ti, &kco_dha, &d500, &d1000))
@@ -95,7 +127,10 @@ pub fn empirical_a_jacobian(p_in: &Params, x: &Columns, wrt: &[String]) -> Vec<V
         let cc = if use_gm {
             let mut cc = d_s_sub(cik, &d_s_div(20.0, &gm));
             for _ in 0..20 {
-                let a = d_sub(&d_mul(&a_qt, &d_div(&d_sub(&cc, &gam), &d_add(&cc, &kco))), &rd);
+                let a = d_sub(
+                    &d_mul(&a_qt, &d_div(&d_sub(&cc, &gam), &d_add(&cc, &kco))),
+                    &rd,
+                );
                 let ccn = d_s_sub(cik, &d_div(&a, &gm));
                 if (ccn.v - cc.v).abs() < 1e-6 {
                     break;
@@ -106,7 +141,10 @@ pub fn empirical_a_jacobian(p_in: &Params, x: &Columns, wrt: &[String]) -> Vec<V
         } else {
             d_const(cik, m)
         };
-        let a_final = d_sub(&d_mul(&a_qt, &d_div(&d_sub(&cc, &gam), &d_add(&cc, &kco))), &rd);
+        let a_final = d_sub(
+            &d_mul(&a_qt, &d_div(&d_sub(&cc, &gam), &d_add(&cc, &kco))),
+            &rd,
+        );
         jac.push(a_final.d);
     }
     jac
@@ -124,7 +162,12 @@ pub fn predict(p_in: &Params, x: &Columns) -> Vec<f64> {
     let mut out = vec![0.0; n];
     let gm = get(&p, "gm");
     let use_gm = gm > 0.0 && gm < 99.0;
-    let (amax25, amax_dha, amax_dhd, amax_topt) = (get(&p, "Amax25"), get(&p, "Amax_dHa"), get(&p, "Amax_dHd"), get(&p, "Amax_Topt"));
+    let (amax25, amax_dha, amax_dhd, amax_topt) = (
+        get(&p, "Amax25"),
+        get(&p, "Amax_dHa"),
+        get(&p, "Amax_dHd"),
+        get(&p, "Amax_Topt"),
+    );
     let (kco25, kco_dha) = (get(&p, "Kco25"), get(&p, "Kco_dHa"));
     let (kq25, kq_dha) = (get(&p, "Kq25"), get(&p, "Kq_dHa"));
     let (gs25, gs_dha) = (get(&p, "GammaS25"), get(&p, "GammaS_dHa"));

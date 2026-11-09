@@ -1,8 +1,10 @@
 //! Farquhar-von Caemmerer-Berry C3.
 
 use super::smooth_min::smooth_min3;
+use crate::model::{
+    col, get, get_or, param, Columns, ConstraintSpec, Model, ParamSpec, Params, PenaltyOptions,
+};
 use crate::numbers;
-use crate::model::{col, get, get_or, param, Columns, ConstraintSpec, Model, ParamSpec, Params, PenaltyOptions};
 
 const R_FVCB: f64 = 0.0083144598;
 const TREF: f64 = 298.15;
@@ -37,16 +39,46 @@ pub fn rates(p_in: &Params, x: &Columns) -> Rates {
     let (ci, q, t) = (col(x, "Ci"), col(x, "Q"), col(x, "T"));
     let aobs = x.get("Aobs");
     let n = ci.len();
-    let mut out = Rates { ac: vec![0.0; n], aj: vec![0.0; n], ap: vec![0.0; n], a: vec![0.0; n] };
+    let mut out = Rates {
+        ac: vec![0.0; n],
+        aj: vec![0.0; n],
+        ap: vec![0.0; n],
+        a: vec![0.0; n],
+    };
     let gm = numbers::max(get(&p, "gm"), 1e-4);
     let theta = numbers::min(numbers::max(get(&p, "theta"), 0.01), 0.99);
     let alpha_g = get_or(&p, "alphaG", 0.0);
     // Read every parameter once; looking them up by name per point dominated the run time.
-    let (vc25, vc_ha, vc_hd, vc_to) = (get(&p, "Vcmax25"), get(&p, "Vcmax_dHa"), get(&p, "Vcmax_dHd"), get(&p, "Vcmax_Topt"));
-    let (jm25, jm_ha, jm_hd, jm_to) = (get(&p, "Jmax25"), get(&p, "Jmax_dHa"), get(&p, "Jmax_dHd"), get(&p, "Jmax_Topt"));
-    let (tp25, tp_ha, tp_hd, tp_to) = (get(&p, "TPU25"), get(&p, "TPU_dHa"), get(&p, "TPU_dHd"), get(&p, "TPU_Topt"));
-    let (kc25, kc_ha, ko25, ko_ha) = (get(&p, "Kc25"), get(&p, "Kc_dHa"), get(&p, "Ko25"), get(&p, "Ko_dHa"));
-    let (gs25, gs_ha, rd25, rd_ha) = (get(&p, "GammaS25"), get(&p, "GammaS_dHa"), get(&p, "Rd25"), get(&p, "Rd_dHa"));
+    let (vc25, vc_ha, vc_hd, vc_to) = (
+        get(&p, "Vcmax25"),
+        get(&p, "Vcmax_dHa"),
+        get(&p, "Vcmax_dHd"),
+        get(&p, "Vcmax_Topt"),
+    );
+    let (jm25, jm_ha, jm_hd, jm_to) = (
+        get(&p, "Jmax25"),
+        get(&p, "Jmax_dHa"),
+        get(&p, "Jmax_dHd"),
+        get(&p, "Jmax_Topt"),
+    );
+    let (tp25, tp_ha, tp_hd, tp_to) = (
+        get(&p, "TPU25"),
+        get(&p, "TPU_dHa"),
+        get(&p, "TPU_dHd"),
+        get(&p, "TPU_Topt"),
+    );
+    let (kc25, kc_ha, ko25, ko_ha) = (
+        get(&p, "Kc25"),
+        get(&p, "Kc_dHa"),
+        get(&p, "Ko25"),
+        get(&p, "Ko_dHa"),
+    );
+    let (gs25, gs_ha, rd25, rd_ha) = (
+        get(&p, "GammaS25"),
+        get(&p, "GammaS_dHa"),
+        get(&p, "Rd25"),
+        get(&p, "Rd_dHa"),
+    );
     let (o2, alpha) = (get(&p, "O"), get(&p, "alpha"));
     for i in 0..n {
         let ti = t.get(i).copied().unwrap_or(f64::NAN);
@@ -61,7 +93,9 @@ pub fn rates(p_in: &Params, x: &Columns) -> Rates {
         let rd = arrh(ti, rd25, rd_ha);
         let kco = kc * (1.0 + o2 / ko);
         let aq = alpha * qi;
-        let j = (aq + jmax - numbers::max((aq + jmax).powf(2.0) - 4.0 * theta * aq * jmax, 0.0).sqrt()) / (2.0 * theta);
+        let j = (aq + jmax
+            - numbers::max((aq + jmax).powf(2.0) - 4.0 * theta * aq * jmax, 0.0).sqrt())
+            / (2.0 * theta);
 
         let triplet = |cc_in: f64| -> (f64, f64, f64, f64) {
             let cc = numbers::max(cc_in, 1e-2);
@@ -69,9 +103,17 @@ pub fn rates(p_in: &Params, x: &Columns) -> Rates {
             let wc = (vcmax * cc) / (cc + kco);
             let wj = (j * cc) / (4.0 * cc + 8.0 * gamma);
             let denp = cc - gamma * (1.0 + 3.0 * alpha_g);
-            let wp = if denp > 1e-6 { (3.0 * tpu * cc) / denp } else { f64::INFINITY };
+            let wp = if denp > 1e-6 {
+                (3.0 * tpu * cc) / denp
+            } else {
+                f64::INFINITY
+            };
             let a = gcc * smooth_min3(wc, wj, wp) - rd;
-            let ap = if wp.is_finite() { gcc * wp - rd } else { f64::INFINITY };
+            let ap = if wp.is_finite() {
+                gcc * wp - rd
+            } else {
+                f64::INFINITY
+            };
             (gcc * wc - rd, gcc * wj - rd, ap, a)
         };
         let cc = if let Some(aobs) = aobs {
@@ -133,7 +175,13 @@ pub struct Fvcb {
 
 impl Fvcb {
     pub fn new() -> Self {
-        let c = |key, label, description, per_curve| ConstraintSpec { key, label, weight: default_weight(key), description: Some(description), per_curve };
+        let c = |key, label, description, per_curve| ConstraintSpec {
+            key,
+            label,
+            weight: default_weight(key),
+            description: Some(description),
+            per_curve,
+        };
         Fvcb {
             params: vec![
                 param("Vcmax25", 100.0, 5.0, 400.0).describe("max Rubisco carboxylation at 25C"),
@@ -200,7 +248,12 @@ impl Model for Fvcb {
     }
     fn penalties(&self, p: &Params, x: &Columns, o: &PenaltyOptions) -> Option<Vec<f64>> {
         let on = |k: &str| o.enabled.is_none_or(|e| e.contains(k));
-        let wt = |k: &str| o.weights.and_then(|w| w.get(k).copied()).unwrap_or_else(|| default_weight(k)).sqrt();
+        let wt = |k: &str| {
+            o.weights
+                .and_then(|w| w.get(k).copied())
+                .unwrap_or_else(|| default_weight(k))
+                .sqrt()
+        };
         let r = rates(p, x);
         let ci = col(x, "Ci");
         let mut res = Vec::new();
@@ -221,7 +274,11 @@ impl Model for Fvcb {
             for idx in groups {
                 let mut order = idx.clone();
                 // Array.prototype.sort is stable; a NaN comparison counts as equal.
-                order.sort_by(|&a, &b| ci[a].partial_cmp(&ci[b]).unwrap_or(std::cmp::Ordering::Equal));
+                order.sort_by(|&a, &b| {
+                    ci[a]
+                        .partial_cmp(&ci[b])
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                });
                 let (mut ls_aj, mut best_k, mut best_d) = (0.0, 0usize, f64::INFINITY);
                 for (k, &i) in order.iter().enumerate() {
                     ls_aj += numbers::max(r.aj[i] - r.ac[i], 0.0);

@@ -7,7 +7,8 @@ use std::io::Cursor;
 type Workbook = Xlsx<Cursor<Vec<u8>>>;
 
 fn open(buf: &[u8]) -> Result<Workbook, String> {
-    open_workbook_from_rs(Cursor::new(buf.to_vec())).map_err(|e| format!("Could not read the workbook: {e}."))
+    open_workbook_from_rs(Cursor::new(buf.to_vec()))
+        .map_err(|e| format!("Could not read the workbook: {e}."))
 }
 
 /// The workbook's sheet names, in order.
@@ -20,9 +21,15 @@ pub fn read_sheet(buf: &[u8], name: Option<&str>) -> Result<Vec<Vec<Data>>, Stri
     let mut wb = open(buf)?;
     let name = match name {
         Some(n) => n.to_string(),
-        None => wb.sheet_names().first().cloned().ok_or("Workbook has no readable sheet.")?,
+        None => wb
+            .sheet_names()
+            .first()
+            .cloned()
+            .ok_or("Workbook has no readable sheet.")?,
     };
-    let range = wb.worksheet_range(&name).map_err(|e| format!("Could not read sheet \"{name}\": {e}."))?;
+    let range = wb
+        .worksheet_range(&name)
+        .map_err(|e| format!("Could not read sheet \"{name}\": {e}."))?;
     Ok(range.rows().map(|r| r.to_vec()).collect())
 }
 
@@ -67,9 +74,17 @@ pub fn cell_number(c: &Data) -> Option<f64> {
 /// The first sheet as CSV text, without blank rows.
 pub fn to_csv(buf: &[u8]) -> Result<String, String> {
     let rows = read_sheet(buf, None)?;
-    let text: Vec<Vec<String>> = rows.iter().map(|r| r.iter().map(cell_text).collect::<Vec<_>>()).filter(|r| r.iter().any(|c| !c.is_empty())).collect();
+    let text: Vec<Vec<String>> = rows
+        .iter()
+        .map(|r| r.iter().map(cell_text).collect::<Vec<_>>())
+        .filter(|r| r.iter().any(|c| !c.is_empty()))
+        .collect();
     // Trailing empty cells come from other rows' widths; drop them so rows don't end in commas.
-    let width = text.iter().map(|r| r.iter().rposition(|c| !c.is_empty()).map_or(0, |i| i + 1)).max().unwrap_or(0);
+    let width = text
+        .iter()
+        .map(|r| r.iter().rposition(|c| !c.is_empty()).map_or(0, |i| i + 1))
+        .max()
+        .unwrap_or(0);
     Ok(crate::table::write_rows(text.into_iter().map(|mut r| {
         r.truncate(width);
         r

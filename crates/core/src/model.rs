@@ -23,7 +23,14 @@ pub struct ParamSpec {
 
 impl ParamSpec {
     pub const fn new(name: &'static str, default: f64, lb: Option<f64>, ub: Option<f64>) -> Self {
-        ParamSpec { name, default, lb, ub, fixed: false, description: None }
+        ParamSpec {
+            name,
+            default,
+            lb,
+            ub,
+            fixed: false,
+            description: None,
+        }
     }
     pub const fn fixed(mut self) -> Self {
         self.fixed = true;
@@ -109,5 +116,8 @@ pub fn col<'a>(x: &'a Columns, name: &str) -> &'a [f64] {
 
 /// Default values of a model's parameters, in declaration order.
 pub fn defaults(m: &dyn Model) -> Params {
-    m.params().iter().map(|s| (s.name.to_string(), s.default)).collect()
+    m.params()
+        .iter()
+        .map(|s| (s.name.to_string(), s.default))
+        .collect()
 }

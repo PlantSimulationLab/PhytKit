@@ -30,8 +30,12 @@ impl ModifiedVanGenuchten {
                 param("θs", 0.45, 0.1, 1.0).describe("saturated volumetric water content"),
                 param("α1", 1.0, 1e-4, 1e5).describe("MVG retention scale parameter (ψ⁻¹)"),
                 param("n1", 1.5, 0.2, 12.0).describe("MVG retention shape parameter"),
-                param("α2", 1.0, 1e-4, 1e5).fixed().describe("MVG-RHC conductivity scale parameter (ψ⁻¹)"),
-                param("n2", 1.5, 0.2, 12.0).fixed().describe("MVG-RHC conductivity shape parameter"),
+                param("α2", 1.0, 1e-4, 1e5)
+                    .fixed()
+                    .describe("MVG-RHC conductivity scale parameter (ψ⁻¹)"),
+                param("n2", 1.5, 0.2, 12.0)
+                    .fixed()
+                    .describe("MVG-RHC conductivity shape parameter"),
             ],
         }
     }

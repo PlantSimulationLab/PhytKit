@@ -80,7 +80,8 @@ pub fn reg_inc_beta(a: f64, b: f64, x: f64) -> f64 {
     if x >= 1.0 {
         return 1.0;
     }
-    let front = (a * x.ln() + b * (1.0 - x).ln() - (ln_gamma(a) + ln_gamma(b) - ln_gamma(a + b))).exp();
+    let front =
+        (a * x.ln() + b * (1.0 - x).ln() - (ln_gamma(a) + ln_gamma(b) - ln_gamma(a + b))).exp();
     if x < (a + 1.0) / (a + b + 2.0) {
         (front * betacf(a, b, x)) / a
     } else {
@@ -119,7 +120,9 @@ pub fn predict(p: &Params, x: &Columns) -> Vec<f64> {
     let psi = col(x, "psi");
     let tr = get(p, "θr");
     let ts = get(p, "θs");
-    psi.iter().map(|&v| tr + (ts - tr) * raats_saturation(p, v)).collect()
+    psi.iter()
+        .map(|&v| tr + (ts - tr) * raats_saturation(p, v))
+        .collect()
 }
 
 pub struct Raats {
@@ -136,7 +139,9 @@ impl Raats {
                 param("α", 5.0, 0.01, 10.0).describe("Raats shape parameter α"),
                 param("β", 5.0, 0.1, 40.0).describe("Raats shape parameter β (dry end)"),
                 param("γ", 0.8, 0.01, 0.999).describe("Raats shape parameter γ (wet end, 0–1)"),
-                param("λ", 0.5, -5.0, 5.0).fixed().describe("Mualem tortuosity exponent (conductivity)"),
+                param("λ", 0.5, -5.0, 5.0)
+                    .fixed()
+                    .describe("Mualem tortuosity exponent (conductivity)"),
             ],
         }
     }

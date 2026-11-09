@@ -16,9 +16,12 @@ pub struct CsvGroup {
 /// blank value are dropped. The column is matched exactly, then ignoring case.
 pub fn split_csv_by_column(text: &str, column: &str) -> Result<Vec<CsvGroup>, String> {
     let table = Table::parse(text).ok_or("Empty file.")?;
-    let j = table
-        .index(column)
-        .ok_or_else(|| format!("No column \"{column}\" in the file. Columns: {}.", table.names().join(", ")))?;
+    let j = table.index(column).ok_or_else(|| {
+        format!(
+            "No column \"{column}\" in the file. Columns: {}.",
+            table.names().join(", ")
+        )
+    })?;
     let mut groups: IndexMap<&str, Vec<&Vec<String>>> = IndexMap::new();
     for row in &table.rows {
         let key = Table::cell(row, j);
@@ -49,7 +52,10 @@ mod tests {
         let g = split_csv_by_column(text, "leaf").unwrap();
         assert_eq!(g.len(), 2);
         assert_eq!(g[0].csv, "Leaf,psi,RWC\nL1,0.1,1\nL1,0.2,0.9\n");
-        assert_eq!(split_csv_by_column(text, "x").unwrap_err(), "No column \"x\" in the file. Columns: Leaf, psi, RWC.");
+        assert_eq!(
+            split_csv_by_column(text, "x").unwrap_err(),
+            "No column \"x\" in the file. Columns: Leaf, psi, RWC."
+        );
         assert_eq!(split_csv_by_column("", "x").unwrap_err(), "Empty file.");
     }
 }

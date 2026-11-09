@@ -3,17 +3,26 @@
 use crate::args::{CliError, ParsedArgs, Result};
 use crate::io::{load_file, write_out};
 use crate::{object, Output};
-use phytkit_core::numbers::{self, json as num};
-use serde_json::{json, Value};
-use phytkit_core::li600::{correct_li600, corrected_columns_csv, corrected_full_csv, parse_li600, Li600Options};
+use phytkit_core::li600::{
+    correct_li600, corrected_columns_csv, corrected_full_csv, parse_li600, Li600Options,
+};
 use phytkit_core::model::Params;
-use phytkit_core::poro::{parse_param_text, parse_poro_file, poro_columns_csv, poro_full_csv, solve_poro_a, PoroModel, PoroOptions, DEFAULT_MIN_GSW, PORO_MODELS};
+use phytkit_core::numbers::{self, json as num};
+use phytkit_core::poro::{
+    parse_param_text, parse_poro_file, poro_columns_csv, poro_full_csv, solve_poro_a, PoroModel,
+    PoroOptions, DEFAULT_MIN_GSW, PORO_MODELS,
+};
+use serde_json::{json, Value};
 
 const LI600_HINT: &str = "pk li600 reads LI-600 porometer exports. For gas-exchange curves (A–Ci), use pk fit photosynthesis.";
 const PARAMS_HINT: &str = "Use the JSON from pk fit, a CSV with a column per parameter, a Parameter/Value table, or lines of name = value.";
 
 fn mean(a: &[f64]) -> f64 {
-    if a.is_empty() { f64::NAN } else { a.iter().fold(0.0, |s, v| s + v) / a.len() as f64 }
+    if a.is_empty() {
+        f64::NAN
+    } else {
+        a.iter().fold(0.0, |s, v| s + v) / a.len() as f64
+    }
 }
 
 pub fn correct(args: &ParsedArgs) -> Result<Output> {
@@ -22,8 +31,17 @@ pub fn correct(args: &ParsedArgs) -> Result<Output> {
     let c = args.num("thermal-conductance", 0.007)?;
     let file = load_file(path)?;
     let parsed = parse_li600(&file.text).map_err(|e| CliError::data(e).hint(LI600_HINT))?;
-    let corrected = correct_li600(&parsed.rows, Li600Options { sidedness, thermal_conductance: c });
-    let valid: Vec<_> = corrected.iter().filter(|r| r.converged && r.overestimate.is_finite()).collect();
+    let corrected = correct_li600(
+        &parsed.rows,
+        Li600Options {
+            sidedness,
+            thermal_conductance: c,
+        },
+    );
+    let valid: Vec<_> = corrected
+        .iter()
+        .filter(|r| r.converged && r.overestimate.is_finite())
+        .collect();
     let out = args.str("out")?;
     if let Some(o) = &out {
         write_out(o, &corrected_full_csv(&parsed, &corrected))?;
@@ -69,17 +87,35 @@ pub fn correct(args: &ParsedArgs) -> Result<Output> {
 }
 
 /// Parameters = model defaults, then the --params file, then --set k=v.
-fn resolve_params(args: &ParsedArgs, model_name: &str) -> Result<(&'static PoroModel, Params, Vec<String>, Option<String>)> {
-    let model = PORO_MODELS.iter().find(|m| m.name == model_name).ok_or_else(|| {
-        CliError::usage("unknown_model", format!("Unknown model \"{model_name}\" for pk li600 estimate.")).hint(format!("Models: {}.", PORO_MODELS.iter().map(|m| m.name).collect::<Vec<_>>().join(", ")))
-    })?;
+fn resolve_params(
+    args: &ParsedArgs,
+    model_name: &str,
+) -> Result<(&'static PoroModel, Params, Vec<String>, Option<String>)> {
+    let model = PORO_MODELS
+        .iter()
+        .find(|m| m.name == model_name)
+        .ok_or_else(|| {
+            CliError::usage(
+                "unknown_model",
+                format!("Unknown model \"{model_name}\" for pk li600 estimate."),
+            )
+            .hint(format!(
+                "Models: {}.",
+                PORO_MODELS
+                    .iter()
+                    .map(|m| m.name)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ))
+        })?;
     let mut params = model.params();
     let known = model.param_names();
     let mut ignored = Vec::new();
     let pfile = args.str("params")?;
     if let Some(pf) = &pfile {
         let text = load_file(pf)?.text;
-        let found = parse_param_text(&text).map_err(|e| CliError::data(format!("--params {pf}: {e}")).hint(PARAMS_HINT))?;
+        let found = parse_param_text(&text)
+            .map_err(|e| CliError::data(format!("--params {pf}: {e}")).hint(PARAMS_HINT))?;
         for (k, v) in &found {
             if known.contains(&k.as_str()) {
                 params.insert(k.clone(), *v);
@@ -93,7 +129,9 @@ fn resolve_params(args: &ParsedArgs, model_name: &str) -> Result<(&'static PoroM
     }
     for (k, v) in args.kv("set")? {
         if !known.contains(&k.as_str()) {
-            return Err(crate::options::unknown_parameter("--set", &k, model.name, &known));
+            return Err(crate::options::unknown_parameter(
+                "--set", &k, model.name, &known,
+            ));
         }
         params.insert(k, v);
     }
@@ -109,7 +147,16 @@ pub fn estimate(args: &ParsedArgs) -> Result<Output> {
     let min_gsw = args.num("min-gsw", DEFAULT_MIN_GSW)?;
     let file = load_file(path)?;
     let parsed = parse_poro_file(&file.text).map_err(|e| CliError::data(e).hint(LI600_HINT))?;
-    let results = solve_poro_a(model, &params, &parsed.rows, &PoroOptions { ca, absorptance, min_gsw });
+    let results = solve_poro_a(
+        model,
+        &params,
+        &parsed.rows,
+        &PoroOptions {
+            ca,
+            absorptance,
+            min_gsw,
+        },
+    );
     let ok: Vec<_> = results.iter().filter(|r| r.ok).collect();
     let out = args.str("out")?;
     if let Some(o) = &out {
@@ -122,7 +169,8 @@ pub fn estimate(args: &ParsedArgs) -> Result<Output> {
     let gm = model.gm(&params);
     let a: Vec<f64> = ok.iter().map(|r| r.a).collect();
     let ci: Vec<f64> = ok.iter().map(|r| r.ci).collect();
-    let param_json: serde_json::Map<String, Value> = params.iter().map(|(k, v)| (k.clone(), num(*v))).collect();
+    let param_json: serde_json::Map<String, Value> =
+        params.iter().map(|(k, v)| (k.clone(), num(*v))).collect();
     let mut o = object(json!({
         "file": file.name,
         "converted": file.converted,

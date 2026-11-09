@@ -22,11 +22,15 @@ pub struct ConcatResult {
 /// `YYYY-MM-DD-HHMM_` date and time.
 pub fn label_of(name: &str) -> String {
     let stem = match name.rsplit_once('.') {
-        Some((stem, ext)) if !ext.is_empty() && ext.chars().all(|c| c.is_ascii_alphanumeric()) => stem,
+        Some((stem, ext)) if !ext.is_empty() && ext.chars().all(|c| c.is_ascii_alphanumeric()) => {
+            stem
+        }
         _ => name,
     };
     let b = stem.as_bytes();
-    let digits = |from: usize, n: usize| b.len() >= from + n && b[from..from + n].iter().all(u8::is_ascii_digit);
+    let digits = |from: usize, n: usize| {
+        b.len() >= from + n && b[from..from + n].iter().all(u8::is_ascii_digit)
+    };
     let sep = |i: usize| matches!(b.get(i), Some(b'-' | b'_'));
     if !(digits(0, 4) && sep(4) && digits(5, 2) && sep(7) && digits(8, 2)) {
         return stem.to_string();
@@ -51,10 +55,17 @@ struct Source {
 
 impl Source {
     fn get(&self, row: &[String], field: &str) -> String {
-        self.table.header.iter().position(|h| h == field).map_or(String::new(), |j| Table::cell(row, j).to_string())
+        self.table
+            .header
+            .iter()
+            .position(|h| h == field)
+            .map_or(String::new(), |j| Table::cell(row, j).to_string())
     }
     fn has(&self, field: &str) -> bool {
-        self.table.header.iter().any(|h| h.eq_ignore_ascii_case(field))
+        self.table
+            .header
+            .iter()
+            .any(|h| h.eq_ignore_ascii_case(field))
     }
 }
 
@@ -72,7 +83,11 @@ fn light_column_warning(sources: &[Source]) -> Option<String> {
     }
     let lost: usize = lacking.iter().map(|s| s.table.rows.len()).sum();
     let others: Vec<&str> = q.iter().copied().filter(|c| *c != winner).collect();
-    let others = if others.is_empty() { String::new() } else { format!(" (they log \"{}\")", others.join("\"/\"")) };
+    let others = if others.is_empty() {
+        String::new()
+    } else {
+        format!(" (they log \"{}\")", others.join("\"/\""))
+    };
     let labels: Vec<&str> = lacking.iter().map(|s| s.label.as_str()).collect();
     Some(format!(
         "{} of {} file(s) have no \"{winner}\" column{others}. The fitter prefers \"{winner}\", so their {lost} row(s) would be dropped: {}. Merge logs recorded the same way.",
@@ -90,14 +105,26 @@ pub fn concat_csvs<N: AsRef<str>, C: AsRef<str>>(sources: &[(N, C)]) -> ConcatRe
         .iter()
         .map(|(name, csv)| {
             let name = name.as_ref();
-            let label = Some(label_of(name)).filter(|l| !l.is_empty()).unwrap_or_else(|| name.to_string());
-            let table = Table::parse(csv.as_ref()).unwrap_or(Table { header: vec![], rows: vec![] });
+            let label = Some(label_of(name))
+                .filter(|l| !l.is_empty())
+                .unwrap_or_else(|| name.to_string());
+            let table = Table::parse(csv.as_ref()).unwrap_or(Table {
+                header: vec![],
+                rows: vec![],
+            });
             Source { label, table }
         })
         .collect();
-    let id_field = sources.iter().flat_map(|s| s.table.header.iter()).find(|h| h.eq_ignore_ascii_case(CURVE_ID)).cloned();
+    let id_field = sources
+        .iter()
+        .flat_map(|s| s.table.header.iter())
+        .find(|h| h.eq_ignore_ascii_case(CURVE_ID))
+        .cloned();
 
-    let mut header: IndexSet<String> = sources.iter().flat_map(|s| s.table.header.iter().filter(|h| !h.is_empty()).cloned()).collect();
+    let mut header: IndexSet<String> = sources
+        .iter()
+        .flat_map(|s| s.table.header.iter().filter(|h| !h.is_empty()).cloned())
+        .collect();
     let key = id_field.clone().unwrap_or_else(|| CURVE_ID.to_string());
     header.insert(key.clone());
 

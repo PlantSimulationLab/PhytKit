@@ -1,8 +1,10 @@
 //! Von Caemmerer (2021) C4 photosynthesis.
 
 use super::smooth_min::smooth_min;
+use crate::model::{
+    col, get, param, Columns, ConstraintSpec, Model, ParamSpec, Params, PenaltyOptions,
+};
 use crate::numbers;
-use crate::model::{col, get, param, Columns, ConstraintSpec, Model, ParamSpec, Params, PenaltyOptions};
 
 const R_C4: f64 = 0.0083144598;
 const TREF: f64 = 298.15;
@@ -51,7 +53,11 @@ pub fn rates(p_in: &Params, x: &Columns) -> Rates {
     let (ci, q, t) = (col(x, "Ci"), col(x, "Q"), col(x, "T"));
     let aobs = x.get("Aobs");
     let n = ci.len();
-    let mut out = Rates { ac: vec![0.0; n], aj: vec![0.0; n], a: vec![0.0; n] };
+    let mut out = Rates {
+        ac: vec![0.0; n],
+        aj: vec![0.0; n],
+        a: vec![0.0; n],
+    };
 
     let gm = numbers::max(get(&p, "gm"), 1e-4);
     let theta = numbers::min(numbers::max(get(&p, "theta_etr"), 0.01), 0.99);
@@ -99,7 +105,8 @@ pub fn rates(p_in: &Params, x: &Columns) -> Rates {
         let rho = (1.0 - fcyc) / (2.0 - fcyc);
         let i2 = qi * rho * (1.0 - F_SPECTRAL);
         let sum_ij = i2 + jmax;
-        let j = (sum_ij - numbers::max(sum_ij * sum_ij - 4.0 * theta * i2 * jmax, 0.0).sqrt()) / (2.0 * theta);
+        let j = (sum_ij - numbers::max(sum_ij * sum_ij - 4.0 * theta * i2 * jmax, 0.0).sqrt())
+            / (2.0 * theta);
 
         let z = (H_J * (1.0 - fcyc) + H_JCYC * fcyc) / numbers::max(H_PROTONS * (1.0 - fcyc), 1e-6);
         let rm = RM_FRAC * rd;
@@ -114,7 +121,10 @@ pub fn rates(p_in: &Params, x: &Columns) -> Rates {
             let term_pep = vp - rm + gbs * cm;
             let term_rub = vcmax - rd;
             let ac_a = 1.0 - (alpha * kc) / (AO * ko);
-            let ac_b = -(term_pep + term_rub + gbs * kc * kco + (alpha / AO) * (gamma_star * vcmax + (rd * kc) / ko));
+            let ac_b = -(term_pep
+                + term_rub
+                + gbs * kc * kco
+                + (alpha / AO) * (gamma_star * vcmax + (rd * kc) / ko));
             let ac_c = term_rub * term_pep - gbs * (vcmax * gamma_star * om + rd * kc * kco);
             let ac_disc = numbers::max(ac_b * ac_b - 4.0 * ac_a * ac_c, 0.0);
             let ac = (-ac_b - ac_disc.sqrt()) / (2.0 * ac_a);
@@ -126,7 +136,8 @@ pub fn rates(p_in: &Params, x: &Columns) -> Rates {
                 + term_bun_j
                 + (gbs * 7.0 * gamma_star * om) / 3.0
                 + ((alpha * gamma_star) / AO) * ((jbun * z) / 3.0 + (7.0 * rd) / 3.0));
-            let aj_c = term_mes_j * term_bun_j - gbs * gamma_star * om * ((jbun * z) / 3.0 + (7.0 * rd) / 3.0);
+            let aj_c = term_mes_j * term_bun_j
+                - gbs * gamma_star * om * ((jbun * z) / 3.0 + (7.0 * rd) / 3.0);
             let aj_disc = numbers::max(aj_b * aj_b - 4.0 * aj_a * aj_c, 0.0);
             let aj = (-aj_b - aj_disc.sqrt()) / (2.0 * aj_a);
 
@@ -185,12 +196,19 @@ pub struct FvcbC4 {
 
 impl FvcbC4 {
     pub fn new() -> Self {
-        let c = |key, label, description, per_curve| ConstraintSpec { key, label, weight: default_weight(key), description: Some(description), per_curve };
+        let c = |key, label, description, per_curve| ConstraintSpec {
+            key,
+            label,
+            weight: default_weight(key),
+            description: Some(description),
+            per_curve,
+        };
         FvcbC4 {
             params: vec![
                 param("Vpmax25", 200.0, 1.0, 600.0).describe("max PEP carboxylation at 25C"),
                 param("Vcmax25", 40.0, 1.0, 200.0).describe("max Rubisco carboxylation at 25C"),
-                param("Jmax25", 247.69, 5.0, 700.0).describe("max linear electron transport at 25C"),
+                param("Jmax25", 247.69, 5.0, 700.0)
+                    .describe("max linear electron transport at 25C"),
                 param("Rd25", 1.0, 0.0, 15.0).describe("day respiration at 25C"),
                 param("Vpmax_dHa", 50.1, 1.0, 200.0),
                 param("Vcmax_dHa", 78.0, 1.0, 200.0),
@@ -198,29 +216,78 @@ impl FvcbC4 {
                 param("Jmax_dHd", 260.0, 100.0, 500.0),
                 param("Jmax_Topt", 316.15, 288.0, 333.0),
                 param("Rd_dHa", 66.4, 1.0, 200.0),
-                param("gm", 1.0, 0.05, 5.0).fixed().describe("mesophyll conductance (Cm = Ci − A/gm)"),
-                param("gbs", 0.003, 1e-4, 0.05).fixed().describe("bundle-sheath conductance"),
-                param("Vpr", 80.0, 20.0, 200.0).fixed().describe("PEP regeneration cap"),
-                param("alpha_psII", 0.0, 0.0, 1.0).fixed().describe("fraction of PSII activity in bundle sheath"),
-                param("x_etr", 0.4, 0.05, 0.95).fixed().describe("fraction of linear ETR to mesophyll"),
-                param("fcyc", 0.45, 0.0, 0.85).fixed().describe("cyclic electron flow fraction"),
-                param("theta_etr", 0.7, 0.1, 0.99).fixed().describe("curvature of J(Q)"),
-                param("Kc25", 1210.0, 500.0, 3000.0).fixed().describe("Rubisco Kc at 25C (μbar)"),
+                param("gm", 1.0, 0.05, 5.0)
+                    .fixed()
+                    .describe("mesophyll conductance (Cm = Ci − A/gm)"),
+                param("gbs", 0.003, 1e-4, 0.05)
+                    .fixed()
+                    .describe("bundle-sheath conductance"),
+                param("Vpr", 80.0, 20.0, 200.0)
+                    .fixed()
+                    .describe("PEP regeneration cap"),
+                param("alpha_psII", 0.0, 0.0, 1.0)
+                    .fixed()
+                    .describe("fraction of PSII activity in bundle sheath"),
+                param("x_etr", 0.4, 0.05, 0.95)
+                    .fixed()
+                    .describe("fraction of linear ETR to mesophyll"),
+                param("fcyc", 0.45, 0.0, 0.85)
+                    .fixed()
+                    .describe("cyclic electron flow fraction"),
+                param("theta_etr", 0.7, 0.1, 0.99)
+                    .fixed()
+                    .describe("curvature of J(Q)"),
+                param("Kc25", 1210.0, 500.0, 3000.0)
+                    .fixed()
+                    .describe("Rubisco Kc at 25C (μbar)"),
                 param("Kc_dHa", 64.2, 1.0, 200.0).fixed(),
-                param("Ko25", 292000.0, 1e5, 5e5).fixed().describe("Rubisco Ko at 25C (μbar)"),
+                param("Ko25", 292000.0, 1e5, 5e5)
+                    .fixed()
+                    .describe("Rubisco Ko at 25C (μbar)"),
                 param("Ko_dHa", 10.5, 1.0, 200.0).fixed(),
-                param("Kp25", 82.0, 20.0, 300.0).fixed().describe("PEPC Kp at 25C (μbar)"),
+                param("Kp25", 82.0, 20.0, 300.0)
+                    .fixed()
+                    .describe("PEPC Kp at 25C (μbar)"),
                 param("Kp_dHa", 38.3, 1.0, 200.0).fixed(),
-                param("GammaStar25", 3.81679e-4, 1e-4, 1e-3).fixed().describe("half Rubisco O2/CO2 specificity (dimensionless)"),
+                param("GammaStar25", 3.81679e-4, 1e-4, 1e-3)
+                    .fixed()
+                    .describe("half Rubisco O2/CO2 specificity (dimensionless)"),
                 param("GammaStar_dHa", 31.1, 1.0, 200.0).fixed(),
-                param("Om25", 210000.0, 1e5, 3e5).fixed().describe("bundle-sheath O2 partial pressure (μbar)"),
+                param("Om25", 210000.0, 1e5, 3e5)
+                    .fixed()
+                    .describe("bundle-sheath O2 partial pressure (μbar)"),
             ],
             constraints: vec![
-                c(C_VPVPR, "Vpmax > Vpr", "PEP kinetic curve must reach its regeneration cap", false),
-                c(C_VPBREAK, "Vpr breakpoint in Ci range", "Keep the Vpmax→Vpr transition inside the data (Vpmax/Vpr identifiability)", true),
-                c(C_REGIME, "Ac/Aj regime at high Ci", "High light → Ac binds; low light → Aj binds, at saturating Ci", true),
-                c(C_RDTETHER, "Rd ≈ 0.02·Vcmax", "Soft tether of day respiration to Vcmax (poorly identified in C4)", false),
-                c(C_RATEWIN, "Rate windows", "Soft priors: Vpmax∈[20,400], Vcmax∈[5,200], Jmax∈[50,600]", false),
+                c(
+                    C_VPVPR,
+                    "Vpmax > Vpr",
+                    "PEP kinetic curve must reach its regeneration cap",
+                    false,
+                ),
+                c(
+                    C_VPBREAK,
+                    "Vpr breakpoint in Ci range",
+                    "Keep the Vpmax→Vpr transition inside the data (Vpmax/Vpr identifiability)",
+                    true,
+                ),
+                c(
+                    C_REGIME,
+                    "Ac/Aj regime at high Ci",
+                    "High light → Ac binds; low light → Aj binds, at saturating Ci",
+                    true,
+                ),
+                c(
+                    C_RDTETHER,
+                    "Rd ≈ 0.02·Vcmax",
+                    "Soft tether of day respiration to Vcmax (poorly identified in C4)",
+                    false,
+                ),
+                c(
+                    C_RATEWIN,
+                    "Rate windows",
+                    "Soft priors: Vpmax∈[20,400], Vcmax∈[5,200], Jmax∈[50,600]",
+                    false,
+                ),
             ],
         }
     }
@@ -250,7 +317,12 @@ impl Model for FvcbC4 {
     }
     fn penalties(&self, p: &Params, x: &Columns, o: &PenaltyOptions) -> Option<Vec<f64>> {
         let on = |k: &str| o.enabled.is_none_or(|e| e.contains(k));
-        let wt = |k: &str| o.weights.and_then(|w| w.get(k).copied()).unwrap_or_else(|| default_weight(k)).sqrt();
+        let wt = |k: &str| {
+            o.weights
+                .and_then(|w| w.get(k).copied())
+                .unwrap_or_else(|| default_weight(k))
+                .sqrt()
+        };
         let mut res = Vec::new();
         let ci = col(x, "Ci");
         let q = col(x, "Q");

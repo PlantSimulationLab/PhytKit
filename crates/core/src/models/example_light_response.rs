@@ -12,7 +12,10 @@ use crate::model::{col, get, param, Columns, Model, ParamSpec, Params};
 
 pub fn predict(p: &Params, x: &Columns) -> Vec<f64> {
     let (amax, kq, rd) = (get(p, "Amax"), get(p, "Kq"), get(p, "Rd"));
-    col(x, "Q").iter().map(|&q| ((amax * q) / (q + kq)) - rd).collect()
+    col(x, "Q")
+        .iter()
+        .map(|&q| ((amax * q) / (q + kq)) - rd)
+        .collect()
 }
 
 /// The derivatives above, evaluated at every point (rows = points).

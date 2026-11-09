@@ -1,7 +1,7 @@
 //! The Rizzo & Bailey (2025) LI-600 gsw correction.
 
-use crate::numbers;
 use crate::linalg::solve_linear;
+use crate::numbers;
 use crate::table::read_rows;
 
 #[derive(Clone, Copy, Debug)]
@@ -50,7 +50,16 @@ pub struct CorrectedRow {
     pub converged: bool,
 }
 
-const REQUIRED: [&str; 8] = ["gsw", "Tref", "Tleaf", "rh_r", "rh_s", "flow", "P_atm", "E_apparent"];
+const REQUIRED: [&str; 8] = [
+    "gsw",
+    "Tref",
+    "Tleaf",
+    "rh_r",
+    "rh_s",
+    "flow",
+    "P_atm",
+    "E_apparent",
+];
 
 /// Parse a raw LI-600 CSV export (group row / name row / units row / data).
 pub fn parse_li600(text: &str) -> Result<Li600Parsed, String> {
@@ -65,13 +74,20 @@ pub fn parse_li600(text: &str) -> Result<Li600Parsed, String> {
     let mut col = [0usize; 8];
     let mut missing = Vec::new();
     for (k, name) in REQUIRED.iter().enumerate() {
-        match header.iter().position(|h| h.to_lowercase() == name.to_lowercase()) {
+        match header
+            .iter()
+            .position(|h| h.to_lowercase() == name.to_lowercase())
+        {
             Some(j) => col[k] = j,
             None => missing.push(*name),
         }
     }
     if !missing.is_empty() {
-        return Err(format!("Missing column(s): {}.\nLI-600 export needs: {}.", missing.join(", "), REQUIRED.join(", ")));
+        return Err(format!(
+            "Missing column(s): {}.\nLI-600 export needs: {}.",
+            missing.join(", "),
+            REQUIRED.join(", ")
+        ));
     }
     let gsw_col = col[0];
     let mut data_start = h_idx + 1;
@@ -89,7 +105,16 @@ pub fn parse_li600(text: &str) -> Result<Li600Parsed, String> {
             continue;
         }
         let v = |k: usize| r.get(col[k]).map_or(f64::NAN, |s| numbers::parse(s));
-        let row = Li600Row { gsw: v(0), tref: v(1), tleaf: v(2), rh_r: v(3), rh_s: v(4), flow: v(5), p_atm: v(6), e_apparent: v(7) };
+        let row = Li600Row {
+            gsw: v(0),
+            tref: v(1),
+            tleaf: v(2),
+            rh_r: v(3),
+            rh_s: v(4),
+            flow: v(5),
+            p_atm: v(6),
+            e_apparent: v(7),
+        };
         if !row.gsw.is_finite() || !row.tref.is_finite() || !row.flow.is_finite() {
             continue;
         }
@@ -100,7 +125,19 @@ pub fn parse_li600(text: &str) -> Result<Li600Parsed, String> {
         return Err("No usable numeric rows found.".into());
     }
     let n = rows.len();
-    Ok(Li600Parsed { rows, n, warnings: vec![format!("Parsed {n} observation(s) (header row {}).", h_idx + 1)], grid, h_idx, data_start, units_row, row_map })
+    Ok(Li600Parsed {
+        rows,
+        n,
+        warnings: vec![format!(
+            "Parsed {n} observation(s) (header row {}).",
+            h_idx + 1
+        )],
+        grid,
+        h_idx,
+        data_start,
+        units_row,
+        row_map,
+    })
 }
 
 /// Newton solve of the 3x3 system with a finite-difference Jacobian and backtracking.
@@ -173,7 +210,11 @@ pub fn correct_li600(rows: &[Li600Row], opts: Li600Options) -> Vec<CorrectedRow>
                 let h_out = h(t_in, rh_out, p);
                 let q = c_cond * (t_in - t_chamb);
                 let gtw = (gsw * gbw) / (gsw + gbw);
-                [e - gtw * (w_leaf - w_chamb), e - (u_in * (w_out - w_in)) / (s * (1.0 - w_out)), e - ((q + u_in * h_in) / h_out - u_in) / s]
+                [
+                    e - gtw * (w_leaf - w_chamb),
+                    e - (u_in * (w_out - w_in)) / (s * (1.0 - w_out)),
+                    e - ((q + u_in * h_in) / h_out - u_in) / s,
+                ]
             };
             let (x, ok) = solve3(&equations, [t_in - 0.1, d.e_apparent * 1e-3, d.gsw * 0.75]);
             let [t_out_sol, e_sol, gsw_sol] = x;
@@ -184,7 +225,11 @@ pub fn correct_li600(rows: &[Li600Row], opts: Li600Options) -> Vec<CorrectedRow>
             CorrectedRow {
                 measured,
                 corrected,
-                overestimate: if ok && corrected > 0.0 { (100.0 * (measured - corrected)) / corrected } else { f64::NAN },
+                overestimate: if ok && corrected > 0.0 {
+                    (100.0 * (measured - corrected)) / corrected
+                } else {
+                    f64::NAN
+                },
                 tin: t_in,
                 ta_chamb,
                 tout: t_out_sol,
@@ -198,11 +243,31 @@ pub fn correct_li600(rows: &[Li600Row], opts: Li600Options) -> Vec<CorrectedRow>
         .collect()
 }
 
-const NEW_COLS: [&str; 7] = ["gsw_corrected", "E_corrected", "T_in_corrected", "Ta_chamb_corrected", "T_out_corrected", "W_chamb_corrected", "stomatal_sidedness"];
-const NEW_UNITS: [&str; 7] = ["mol+1m-2s-1", "mmol+1m-2s-1", "C", "C", "C", "mol+1mol-1", ""];
+const NEW_COLS: [&str; 7] = [
+    "gsw_corrected",
+    "E_corrected",
+    "T_in_corrected",
+    "Ta_chamb_corrected",
+    "T_out_corrected",
+    "W_chamb_corrected",
+    "stomatal_sidedness",
+];
+const NEW_UNITS: [&str; 7] = [
+    "mol+1m-2s-1",
+    "mmol+1m-2s-1",
+    "C",
+    "C",
+    "C",
+    "mol+1mol-1",
+    "",
+];
 
 fn fmt(v: f64) -> String {
-    if v.is_finite() { numbers::fixed(v, 6) } else { String::new() }
+    if v.is_finite() {
+        numbers::fixed(v, 6)
+    } else {
+        String::new()
+    }
 }
 
 fn cells_for(cr: Option<&CorrectedRow>) -> Vec<String> {
@@ -213,12 +278,24 @@ fn cells_for(cr: Option<&CorrectedRow>) -> Vec<String> {
             v.push(fmt(cr.sidedness));
             v
         }
-        Some(cr) => vec![fmt(cr.corrected), fmt(cr.e * 1e3), fmt(cr.tin), fmt(cr.ta_chamb), fmt(cr.tout), fmt(cr.wchamb), fmt(cr.sidedness)],
+        Some(cr) => vec![
+            fmt(cr.corrected),
+            fmt(cr.e * 1e3),
+            fmt(cr.tin),
+            fmt(cr.ta_chamb),
+            fmt(cr.tout),
+            fmt(cr.wchamb),
+            fmt(cr.sidedness),
+        ],
     }
 }
 
 fn csv_cell(v: &str) -> String {
-    if v.contains(['"', ',', '\n']) { format!("\"{}\"", v.replace('"', "\"\"")) } else { v.to_string() }
+    if v.contains(['"', ',', '\n']) {
+        format!("\"{}\"", v.replace('"', "\"\""))
+    } else {
+        v.to_string()
+    }
 }
 
 /// Just the generated columns, one row per observation.
@@ -232,7 +309,11 @@ pub fn corrected_columns_csv(corrected: &[CorrectedRow]) -> String {
 
 /// The original file with the generated columns appended.
 pub fn corrected_full_csv(parsed: &Li600Parsed, corrected: &[CorrectedRow]) -> String {
-    let by_grid: std::collections::HashMap<usize, &CorrectedRow> = corrected.iter().enumerate().map(|(i, cr)| (parsed.row_map[i], cr)).collect();
+    let by_grid: std::collections::HashMap<usize, &CorrectedRow> = corrected
+        .iter()
+        .enumerate()
+        .map(|(i, cr)| (parsed.row_map[i], cr))
+        .collect();
     let mut out = Vec::with_capacity(parsed.grid.len());
     for (r, base) in parsed.grid.iter().enumerate() {
         let extra: Vec<String> = if r == parsed.h_idx {
@@ -244,7 +325,14 @@ pub fn corrected_full_csv(parsed: &Li600Parsed, corrected: &[CorrectedRow]) -> S
         } else {
             cells_for(by_grid.get(&r).copied())
         };
-        out.push(base.iter().cloned().chain(extra).map(|c| csv_cell(&c)).collect::<Vec<_>>().join(","));
+        out.push(
+            base.iter()
+                .cloned()
+                .chain(extra)
+                .map(|c| csv_cell(&c))
+                .collect::<Vec<_>>()
+                .join(","),
+        );
     }
     out.join("\n")
 }

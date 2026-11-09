@@ -12,7 +12,11 @@ pub fn predict(p: &Params, x: &Columns) -> Vec<f64> {
         .map(|(i, &qi)| {
             let di = ds.get(i).copied().unwrap_or(f64::NAN);
             let denom = k + b * qi + (qi + i0) * di;
-            if denom > 0.0 { (em * (qi + i0)) / denom } else { f64::NAN }
+            if denom > 0.0 {
+                (em * (qi + i0)) / denom
+            } else {
+                f64::NAN
+            }
         })
         .collect()
 }

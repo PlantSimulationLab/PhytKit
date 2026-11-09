@@ -1,0 +1,13 @@
+[package]
+name = "phytkit-core"
+description = "Plant physiology model fitting: the Rust core behind pk and the phytkit Python package."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+indexmap.workspace = true
+serde_json.workspace = true
+calamine.workspace = true
+rayon.workspace = true
+csv = "1"

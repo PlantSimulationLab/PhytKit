@@ -1,0 +1,35 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "phytkit"
+description = "Plant physiology model fitting: photosynthesis, stomatal conductance, hydraulics and soil water retention."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "PlantSimulationLab" }]
+keywords = ["plant physiology", "photosynthesis", "FvCB", "stomatal conductance", "curve fitting", "LI-6800", "LI-600"]
+dynamic = ["version"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+[project.urls]
+Documentation = "https://plantsimulationlab.github.io/PhytKit/"
+Source = "https://github.com/PlantSimulationLab/PhytKit"
+Issues = "https://github.com/PlantSimulationLab/PhytKit/issues"
+
+[project.scripts]
+pk = "phytkit.__main__:main"
+
+[tool.maturin]
+python-source = "python"
+module-name = "phytkit._phytkit"
+features = ["pyo3/extension-module"]

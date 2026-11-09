@@ -1,0 +1,73 @@
+# Command lines for test_run_matches_the_pk_binary: each runs through phytkit.run and the
+# pk binary, and the results must match. Paths are relative to the rust/ folder.
+
+describe
+describe fvcb
+describe fvcbC4
+describe empiricalA
+describe raats
+describe lightResponse
+describe nope
+fit --help
+li600 estimate --help
+--help
+
+fit photosynthesis examples/aci.csv --model fvcb --set gm=1000000 --fix gm,alphaG
+fit photosynthesis examples/aci.csv --model fvcb --predicted
+fit photosynthesis examples/aci.csv --model fvcbC4
+fit photosynthesis examples/aci.csv --model empiricalA
+fit photosynthesis examples/aci.csv --model fvcb --no-constraint ap_nonneg --weight vj_ratio=0.5
+fit photosynthesis examples/aci.csv --model fvcb --constraints none --fix gm,alphaG
+fit photosynthesis examples/aci.csv --model fvcb --set gm=1000000 --fix gm,alphaG --survey examples/survey.csv --stat median
+fit photosynthesis examples/aci.csv --model fvcb --group-by CurveID --format csv
+fit photosynthesis examples/aci.csv examples/messy_aci.csv --model empiricalA
+fit photosynthesis examples/aci.csv --model fvcb --fit nope
+fit stomatal examples/bta.csv
+fit stomatal examples/medlyn.csv --model medlyn --predicted
+fit hydraulics examples/pv.csv --model pvcurve --group-by Leaf
+fit hydraulics examples/pv.csv --model pvcurve --group-by Leaf --format csv
+fit hydraulics examples/vulnerability.csv --group-by stem
+fit hydraulics examples/vulnerability_k.csv
+fit soil examples/soil.csv --group-by sample --units kPa
+fit soil examples/soil.csv --group-by sample --units kPa --model raats
+fit soil examples/soil.csv --group-by sample --units kPa --model brooksCorey
+fit soil examples/soil.csv --group-by sample --units kPa --model fractalSWRC
+fit soil examples/soil.csv --group-by sample --units kPa --model modifiedVanGenuchten
+li600 correct examples/li600.csv --rows
+li600 correct examples/li600.csv --sidedness 2 --format csv
+li600 estimate examples/li600.csv --set Vcmax25=90 --set Jmax25=170 --rows
+li600 estimate examples/li600.csv --model fvcbC4 --format csv
+li600 estimate examples/li600.csv --model empiricalA --set Amax25=30 --ca 400 --absorptance 0.9 --min-gsw 0.01
+concat examples/aci.csv examples/messy_aci.csv
+concat examples/aci.csv examples/messy_aci.csv --format json
+
+# Errors: each should give the same code, message, hint and help in both.
+li600 correct examples/li600.csv --sidednes 2
+li600 correct examples/li600.csv -rows
+li600 correct examples/li600.csv extra.csv
+li600 correct examples/li600.csv --sidedness
+li600 correct examples/li600.csv --format xml
+li600 correct missing.csv
+li600 correct examples
+li600 correct examples/aci.csv
+li600 correct
+li600 corect examples/li600.csv
+li600
+li600 estimate examples/li600.csv --ca -10
+li600 estimate examples/li600.csv --model c4
+li600 estimate examples/li600.csv --set Vcmax=90
+fitt photosynthesis examples/aci.csv
+fit photosynthsis examples/aci.csv
+fit fvcb examples/aci.csv
+fit examples/aci.csv
+fit photosynthesis examples/aci.csv --modle fvcb
+fit photosynthesis examples/aci.csv --rows
+fit photosynthesis examples/aci.csv --model medlyn
+fit photosynthesis examples/aci.csv --model fvcb --model empiricalA
+fit photosynthesis examples/aci.csv --max-iter 2.5
+fit photosynthesis examples/aci.csv --no-constraint ap_nonneg_x
+fit photosynthesis examples/aci.csv --ref-ci 300
+fit soil examples/aci.csv
+fit stomatal examples/bta.csv --units kPa
+describe fvcb extra
+concat

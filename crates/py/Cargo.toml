@@ -1,0 +1,17 @@
+[package]
+name = "phytkit-py"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+name = "_phytkit"
+crate-type = ["cdylib"]
+
+[dependencies]
+phytkit-core = { path = "../core" }
+phytkit-cli = { path = "../cli" }
+pyo3 = { version = "0.30", features = ["extension-module", "abi3-py39"] }
+rayon.workspace = true
+serde_json.workspace = true

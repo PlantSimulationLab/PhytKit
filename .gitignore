@@ -1,0 +1,27 @@
+# Rust
+target/
+
+# Python
+.venv/
+*.so
+*.pyd
+__pycache__/
+*.py[cod]
+.pytest_cache/
+dist/
+wheelhouse/
+
+# Docs
+.docs-venv/
+docs/site/
+docs/_site/
+
+# Instructions for the primary developer's own coding agent: per-checkout, not tracked.
+# Outside contributors and AI agents: see AGENTS.md.
+CLAUDE.md
+.claude/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store

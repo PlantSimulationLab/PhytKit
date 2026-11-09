@@ -1,0 +1,22 @@
+[workspace]
+resolver = "2"
+members = ["crates/core", "crates/cli", "crates/py"]
+# The Python bindings (crates/py) are built with maturin, which links them against Python;
+# plain `cargo build` and `cargo test` cover the library and the CLI.
+default-members = ["crates/core", "crates/cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+indexmap = "2.14"
+serde_json = { version = "1.0", features = ["preserve_order"] }
+calamine = "0.38"
+rayon = "1"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1

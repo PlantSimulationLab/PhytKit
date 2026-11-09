@@ -1,0 +1,114 @@
+site_name: Phytkit
+site_url: https://plantsimulationlab.github.io/PhytKit/
+repo_url: https://github.com/PlantSimulationLab/PhytKit
+repo_name: PlantSimulationLab/PhytKit
+site_description: Plant physiology model fitting from the command line and Python — photosynthesis, stomatal conductance, hydraulics, soil water retention and LI-600 porometry.
+copyright: Copyright &copy; 2026 PlantSimulationLab · MIT License
+
+docs_dir: docs
+
+theme:
+  name: material
+  logo: assets/logo.png
+  favicon: assets/logo.png
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+extra_css:
+  - stylesheets/phytkit.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - User Guide:
+      - guide/index.md
+      - Install Phytkit: guide/install.md
+      - Your first fit: guide/first-fit.md
+      - Using the command line: guide/command-line.md
+      - Scripting with Python: guide/python.md
+  - Concepts:
+      - concepts/index.md
+      - How fitting works: concepts/fitting.md
+      - Photosynthesis models: concepts/photosynthesis.md
+      - Stomatal conductance models: concepts/stomatal.md
+      - Plant hydraulics models: concepts/hydraulics.md
+      - Soil water retention models: concepts/soil.md
+      - LI-600 porometry: concepts/li600.md
+  - Workflows:
+      - workflows/index.md
+      - Photosynthesis:
+          - Fit an A–Ci curve: workflows/fit-aci-curve.md
+          - Rescale curves to survey points: workflows/rescale-to-survey.md
+          - Merge LI-6800 logs: workflows/merge-li6800-logs.md
+      - Porometry:
+          - Correct LI-600 conductance: workflows/correct-li600.md
+          - Estimate A from porometry: workflows/estimate-assimilation.md
+      - Water relations:
+          - Fit pressure–volume curves: workflows/fit-pv-curves.md
+          - Fit a vulnerability curve: workflows/fit-vulnerability.md
+          - Fit soil water retention: workflows/fit-soil-retention.md
+          - Fit stomatal conductance: workflows/fit-stomatal.md
+      - Many datasets:
+          - Fit many curves at once: workflows/batch-fitting.md
+  - Reference:
+      - reference/index.md
+      - Commands: reference/commands.md
+      - Python API: reference/python-api.md
+      - Models and parameters: reference/models.md
+      - Input files: reference/input-files.md
+      - Output: reference/output.md
+  - For Developers:
+      - developers/index.md
+      - Architecture: developers/architecture.md
+      - Building and testing: developers/building.md
+      - Adding a model: developers/adding-a-model.md

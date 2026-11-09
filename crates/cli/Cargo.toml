@@ -1,0 +1,17 @@
+[package]
+name = "phytkit-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "phytkit_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "pk"
+path = "src/main.rs"
+
+[dependencies]
+phytkit-core = { path = "../core" }
+serde_json.workspace = true

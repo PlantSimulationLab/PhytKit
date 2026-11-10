@@ -9,5 +9,4 @@ license.workspace = true
 indexmap.workspace = true
 serde_json.workspace = true
 calamine.workspace = true
-rayon.workspace = true
 csv = "1"

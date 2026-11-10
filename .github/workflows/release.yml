@@ -58,9 +58,15 @@ jobs:
         with:
           python-version: "3.12"
       - uses: PyO3/maturin-action@v1
+        env:
+          # Recorded in the wheel for phytkit.build_info(); see crates/py/build.rs.
+          PHYTKIT_GIT_COMMIT: ${{ github.sha }}
+          PHYTKIT_BUILD_KIND: release
         with:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux }}
+          # The manylinux build runs in a container; pass the two variables into it.
+          docker-options: -e PHYTKIT_GIT_COMMIT -e PHYTKIT_BUILD_KIND
           args: --release --out dist -m crates/py/Cargo.toml
       - uses: actions/upload-artifact@v4
         with:

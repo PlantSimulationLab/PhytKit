@@ -299,7 +299,6 @@ dependencies = [
  "calamine",
  "csv",
  "indexmap",
- "rayon",
  "serde_json",
 ]
 

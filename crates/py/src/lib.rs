@@ -447,6 +447,20 @@ fn predict(
     Ok(m.predict(&p, &cols))
 }
 
+/// Which build of the native code this is: version, git commit, whether the tree had
+/// uncommitted changes, release wheel or local build, and the Rust profile and target.
+#[pyfunction]
+fn build_info(py: Python<'_>) -> PyResult<Bound<'_, PyDict>> {
+    let d = PyDict::new(py);
+    d.set_item("version", env!("CARGO_PKG_VERSION"))?;
+    d.set_item("commit", env!("PHYTKIT_GIT_COMMIT"))?;
+    d.set_item("dirty", env!("PHYTKIT_GIT_DIRTY") == "true")?;
+    d.set_item("build", env!("PHYTKIT_BUILD_KIND"))?;
+    d.set_item("profile", if cfg!(debug_assertions) { "debug" } else { "release" })?;
+    d.set_item("target", format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS))?;
+    Ok(d)
+}
+
 #[pymodule]
 fn _phytkit(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run, m)?)?;
@@ -454,6 +468,7 @@ fn _phytkit(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fit_arrays, m)?)?;
     m.add_function(wrap_pyfunction!(fit_many, m)?)?;
     m.add_function(wrap_pyfunction!(predict, m)?)?;
+    m.add_function(wrap_pyfunction!(build_info, m)?)?;
     m.add("PhytKitError", m.py().get_type::<PhytKitError>())?;
     m.add_function(wrap_pyfunction!(main, m)?)?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;

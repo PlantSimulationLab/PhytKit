@@ -72,8 +72,13 @@ pk.fit_many(model_name, datasets, *, fit_params=None, init=None, max_iter=None,
 ```
 
 Fits each `(x, y)` pair in `datasets` in parallel and returns one result per
-dataset, in order, each as from `fit_arrays`. `threads` limits the worker
-threads (default: every core).
+dataset, in order, each as from `fit_arrays`. `threads` sets the number of worker
+threads. When it is `None`, the `RAYON_NUM_THREADS` environment variable sets it,
+and without that every core is used. `fit_many` is the only function that starts
+threads; the others run on the calling thread.
+
+Results don't depend on the thread count: the parameters are bit-identical at
+any `threads`, and identical to fitting each dataset with `fit_arrays`.
 
 ### `predict`
 
@@ -114,6 +119,24 @@ The names of every built-in model.
     is `info` are only in the result. See [Output](output.md#warnings) for the codes.
     To turn them into errors, use `warnings.simplefilter("error", pk.PhytKitWarning)`.
 
-## Version
+## Version and build
 
 `pk.__version__` is the package version.
+
+`pk.build_info()` returns which build of the native code is running:
+
+```python
+{"version": "0.2.0", "commit": "<40-character git hash, or unknown>", "dirty": False,
+ "build": "release", "profile": "release", "target": "x86_64-linux"}
+```
+
+`build` is `"release"` for a wheel from PyPI and `"local"` for a wheel you built
+yourself; `dirty` is `True` when a local build had uncommitted changes.
+
+## Reproducibility
+
+The same inputs give bit-identical results on the same build: starting values come
+from the data, never from a random number generator, and `fit_many` gives the same
+parameters at every thread count. Only `elapsedMs` differs from run to run. PhytKit
+reads only the files you give it and writes only `out=` files: no cache, no
+configuration, nothing under your home directory, and no network access.

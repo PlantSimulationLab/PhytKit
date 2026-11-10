@@ -16,10 +16,10 @@ import warnings as _warnings
 from typing import Any, Iterable, Mapping
 
 from . import _phytkit
-from ._phytkit import PhytKitError, __version__, models, predict
+from ._phytkit import PhytKitError, __version__, build_info, models, predict
 
 __all__ = [
-    "PhytKitError", "PhytKitWarning", "__version__", "concat", "describe", "fit", "fit_arrays",
+    "PhytKitError", "PhytKitWarning", "__version__", "build_info", "concat", "describe", "fit", "fit_arrays",
     "fit_many", "li600_correct", "li600_estimate", "models", "predict", "run",
 ]
 

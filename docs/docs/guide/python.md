@@ -87,6 +87,10 @@ cores. It returns the results in the same order:
 results = pk.fit_many("fvcb", [(x1, y1), (x2, y2), (x3, y3)], threads=8)
 ```
 
+Without `threads`, the `RAYON_NUM_THREADS` environment variable sets the number
+of threads, and without that every core is used. Set it when PhytKit shares a
+machine with other work. The thread count never changes the results.
+
 `init` sets starting values for fitted parameters, which must lie within
 their bounds (a value outside is an error), and the values that fixed
 parameters are held at, which may be anything. To hold a parameter such as

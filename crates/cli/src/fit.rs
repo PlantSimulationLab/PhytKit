@@ -162,6 +162,8 @@ struct FitSpec {
     constraints: Option<Vec<String>>,
     weights: Option<HashMap<String, f64>>,
     max_iter: Option<usize>,
+    /// `--ci-based`: gm infinite and alphaG 0; reported as `"ciBased": true`.
+    ci_based: bool,
 }
 
 fn build_spec(
@@ -196,6 +198,32 @@ fn build_spec(
             .collect()
     };
     fit_params.retain(|k| !fixed.contains(k));
+    let ci_based = args.bool("ci-based", false);
+    if ci_based {
+        if m.name() != "fvcb" {
+            return Err(CliError::usage(
+                "not_applicable",
+                format!(
+                    "--ci-based: only fvcb has a Ci-based form; {} was chosen.",
+                    m.name()
+                ),
+            )
+            .hint("Use --model fvcb, or leave --ci-based out."));
+        }
+        let set_keys: Vec<String> = args.kv("set")?.into_iter().map(|(k, _)| k).collect();
+        for (flag, list) in [("fit", &only), ("fix", &fixed), ("set", &set_keys)] {
+            if let Some(k) = list.iter().find(|k| *k == "gm" || *k == "alphaG") {
+                return Err(CliError::usage(
+                    "invalid_combination",
+                    format!(
+                        "--ci-based holds gm at infinity and alphaG at 0, so --{flag} {k} contradicts it."
+                    ),
+                )
+                .hint(format!("Leave {k} out of --{flag}, or leave --ci-based out.")));
+            }
+        }
+        fit_params.retain(|k| k != "gm" && k != "alphaG");
+    }
     if fit_params.is_empty() {
         return Err(CliError::usage(
             "nothing_to_fit",
@@ -226,6 +254,11 @@ fn build_spec(
     }
     for (k, v) in set {
         init.insert(k, v);
+    }
+    if ci_based {
+        // Cc = Ci - A/gm = Ci exactly; the TPU limit becomes 3·TPU − Rd, as in Helios.
+        init.insert("gm".into(), f64::INFINITY);
+        init.insert("alphaG".into(), 0.0);
     }
     let cons = m.constraints();
     let (mut constraints, mut weights) = (None, None);
@@ -295,6 +328,7 @@ fn build_spec(
         constraints,
         weights,
         max_iter,
+        ci_based,
     })
 }
 
@@ -738,6 +772,7 @@ pub fn fit_command(args: &ParsedArgs) -> Result<Output> {
                         constraints: spec.constraints.clone(),
                         weights: spec.weights.clone(),
                         max_iter: spec.max_iter,
+                        ci_based: spec.ci_based,
                     };
                     for (k, v) in start {
                         if spec.fit_params.contains(&k) && !set.contains(&k) {
@@ -807,7 +842,7 @@ pub fn fit_command(args: &ParsedArgs) -> Result<Output> {
                 factor_out = Some(numbers::round_to(factor, 6));
             }
             let ms = t0.elapsed().as_secs_f64() * 1000.0;
-            Ok(Ok(summarize(
+            let mut summary = summarize(
                 &loaded.name,
                 tool.name,
                 m,
@@ -818,7 +853,20 @@ pub fn fit_command(args: &ParsedArgs) -> Result<Output> {
                 rescale,
                 factor_out,
                 ms,
-            )))
+            );
+            if spec.ci_based {
+                // Right after "model", so the formulation is read with the model name.
+                let mut o = Obj::new();
+                for (k, v) in std::mem::take(&mut summary.obj) {
+                    let is_model = k == "model";
+                    o.insert(k, v);
+                    if is_model {
+                        o.insert("ciBased".into(), json!(true));
+                    }
+                }
+                summary.obj = o;
+            }
+            Ok(Ok(summary))
         })()?;
         match attempt {
             Ok(s) => results.push(s),

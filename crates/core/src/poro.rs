@@ -485,6 +485,11 @@ pub fn parse_param_text(text: &str) -> Result<Params, String> {
                 }
             }
         }
+        // A `pk fit --ci-based` result writes gm (infinite) as null: keep it infinite, so
+        // the estimate uses no mesophyll resistance rather than the default gm.
+        if obj.get("ciBased").and_then(|v| v.as_bool()) == Some(true) {
+            out.insert("gm".to_string(), f64::INFINITY);
+        }
         return Ok(out);
     }
     let lines: Vec<&str> = t

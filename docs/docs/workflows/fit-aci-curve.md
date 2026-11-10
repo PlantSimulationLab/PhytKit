@@ -26,7 +26,7 @@ merged with [`pk concat`](merge-li6800-logs.md) have one.
    fixed very high and `alphaG` held at zero:
 
     ```bash
-    pk fit photosynthesis examples/aci.csv --model fvcb --set gm=1000000 --fix gm,alphaG
+    pk fit photosynthesis examples/aci.csv --model fvcb --ci-based
     ```
 
 3. Check the result before you use it:
@@ -43,7 +43,7 @@ merged with [`pk concat`](merge-li6800-logs.md) have one.
    the measured values, for plotting:
 
     ```bash
-    pk fit photosynthesis examples/aci.csv --model fvcb --set gm=1000000 --fix gm,alphaG --predicted
+    pk fit photosynthesis examples/aci.csv --model fvcb --ci-based --predicted
     ```
 
 ## Choosing what to fit
@@ -55,7 +55,7 @@ temperature, that's far more than the data can determine. Fit only what the
 data constrains:
 
 ```bash
-pk fit photosynthesis examples/aci.csv --model fvcb --set gm=1000000 --fit Vcmax25,Jmax25,TPU25,Rd25,alpha,theta
+pk fit photosynthesis examples/aci.csv --model fvcb --ci-based --fit Vcmax25,Jmax25,TPU25,Rd25,alpha,theta
 ```
 
 A single-temperature curve says nothing about the temperature parameters, so

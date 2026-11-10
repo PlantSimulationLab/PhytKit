@@ -13,6 +13,8 @@ li600 estimate --help
 --help
 
 fit photosynthesis examples/aci.csv --model fvcb --set gm=1000000 --fix gm,alphaG
+fit photosynthesis examples/aci.csv --ci-based
+fit photosynthesis examples/aci.csv --ci-based --format csv
 fit photosynthesis examples/aci.csv --model fvcb --predicted
 fit photosynthesis examples/aci.csv --model fvcbC4
 fit photosynthesis examples/aci.csv --model empiricalA
@@ -69,5 +71,7 @@ fit photosynthesis examples/aci.csv --no-constraint ap_nonneg_x
 fit photosynthesis examples/aci.csv --ref-ci 300
 fit soil examples/aci.csv
 fit stomatal examples/bta.csv --units kPa
+fit photosynthesis examples/aci.csv --model empiricalA --ci-based
+fit photosynthesis examples/aci.csv --ci-based --fix gm
 describe fvcb extra
 concat

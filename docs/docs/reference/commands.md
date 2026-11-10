@@ -35,6 +35,7 @@ files, or with `--group-by`, each file or group is fitted separately (see
 | `--fit` | names, repeatable | Fit exactly these parameters (replaces the default set) |
 | `--fix` | names, repeatable | Hold these parameters fixed |
 | `--set` | `name=value`, repeatable | Starting value (must be within the parameter's bounds), or the value a fixed parameter is held at (any value) |
+| `--ci-based` | switch | `fvcb` only: no mesophyll resistance (gm held at infinity, so Cc = Ci) and `alphaG` held at 0, the formulation Helios uses by default. Output adds `"ciBased": true`, and `gm` is written as `null`. Can't be combined with `--fit`, `--fix` or `--set` on `gm` or `alphaG` |
 | `--max-iter` | whole number ≥ 1 | Iteration limit (default 200) |
 | `--no-constraint` | key, repeatable | Turn off one soft constraint |
 | `--constraint` | key, repeatable | Turn on a soft constraint that is off by default |

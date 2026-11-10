@@ -141,6 +141,7 @@ pub const COMMANDS: &[Command] = &[
             opt("fit", Kind::Names, None, "Fit only these parameters"),
             opt("fix", Kind::Names, None, "Hold these parameters fixed"),
             opt("set", Kind::Pairs, None, "Starting value, or the value a fixed parameter is held at"),
+            opt("ci-based", Kind::Switch, None, "fvcb only: no mesophyll resistance (gm fixed at infinity, so Cc = Ci) and alphaG fixed at 0, the formulation Helios uses by default"),
             opt("max-iter", Kind::Count(1), Some("200"), "Iteration limit"),
             opt("no-constraint", Kind::Names, None, "Turn off one soft constraint"),
             opt("constraint", Kind::Names, None, "Turn on a soft constraint that is off by default"),

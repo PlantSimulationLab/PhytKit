@@ -18,7 +18,7 @@ See [Estimating A from conductance](../concepts/li600.md#estimating-a-from-condu
 1. Fit the species' A–Ci curves and save the parameters:
 
     ```bash
-    pk fit photosynthesis examples/aci.csv --model fvcb --set gm=1000000 --fix gm,alphaG > fvcb_fit.json
+    pk fit photosynthesis examples/aci.csv --model fvcb --ci-based > fvcb_fit.json
     ```
 
 2. Correct the porometer file:

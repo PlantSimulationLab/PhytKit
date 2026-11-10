@@ -22,7 +22,7 @@ and scales its amplitude, then refits.
 and Tleaf:
 
 ```bash
-pk fit photosynthesis examples/aci.csv --model fvcb --set gm=1000000 --fix gm,alphaG --survey examples/survey.csv
+pk fit photosynthesis examples/aci.csv --model fvcb --ci-based --survey examples/survey.csv
 ```
 
 The result has a `rescale` section:

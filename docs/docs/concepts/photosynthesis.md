@@ -64,12 +64,19 @@ they come from the model's own solution of A and \(C_c\) together, exactly as
 
 `gm` is a fitted parameter by default (bounds 0.01–5 mol m⁻² s⁻¹ bar⁻¹).
 Mesophyll conductance is hard to estimate from gas exchange alone, so many
-analyses fit an **apparent** model with \(C_c = C_i\) instead. To do that, fix
-gm at a very large value:
+analyses fit an **apparent** model with \(C_c = C_i\) instead. `--ci-based`
+does that: it holds gm at infinity, so \(C_c = C_i\) exactly, and holds
+`alphaG` at 0, so the TPU limit is \(3\,TPU - R_d\):
 
 ```bash
-pk fit photosynthesis examples/aci.csv --model fvcb --set gm=1000000 --fix gm,alphaG
+pk fit photosynthesis examples/aci.csv --model fvcb --ci-based
 ```
+
+The output then has `"ciBased": true`, and `gm` is written as `null` (JSON has no
+infinity). This is also the form Helios's photosynthesis plugin uses unless you set
+its mesophyll conductance. In Python, pass `ci_based=True`. Holding gm at a large
+finite value instead (`--set gm=1000000 --fix gm,alphaG`) gives the same fit to
+about one part in a million.
 
 ### Soft constraints
 

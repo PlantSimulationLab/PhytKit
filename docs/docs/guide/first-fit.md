@@ -24,16 +24,16 @@ curve. See [Input files](../reference/input-files.md) for the full rules.
 ## Fit
 
 ```bash
-pk fit photosynthesis examples/aci.csv --model fvcb --set gm=1000000 --fix gm,alphaG
+pk fit photosynthesis examples/aci.csv --model fvcb --ci-based
 ```
 
-This fits the Farquhar–von Caemmerer–Berry C3 model. The two options:
+This fits the Farquhar–von Caemmerer–Berry C3 model. `--ci-based` removes the
+mesophyll resistance: it holds `gm` at infinity, so the chloroplast CO₂ equals Ci,
+and holds `alphaG` at 0.
 
-- `--set gm=1000000` starts mesophyll conductance at a very large value.
-- `--fix gm,alphaG` holds it there, together with `alphaG`.
-
-The result is an **apparent** fit, where the chloroplast CO₂ is taken to equal
-Ci. That's the common choice when you have no independent estimate of gm.
+The result is an **apparent** fit. That's the common choice when you have no
+independent estimate of gm, and it is the formulation Helios's photosynthesis
+plugin uses by default.
 See [Photosynthesis models](../concepts/photosynthesis.md#mesophyll-conductance).
 
 ## Read the result
@@ -47,6 +47,7 @@ See [Photosynthesis models](../concepts/photosynthesis.md#mesophyll-conductance)
   "file": "aci.csv",
   "tool": "photosynthesis",
   "model": "fvcb",
+  "ciBased": true,
   "n": 66,
   "mapping": { "A": "A", "Ci": "Ci", "Q": "Qabs", "T": "Tleaf" },
   "r2": 0.998906,
@@ -54,7 +55,7 @@ See [Photosynthesis models](../concepts/photosynthesis.md#mesophyll-conductance)
   "iterations": 63,
   "converged": true,
   "fitted": ["Vcmax25", "Jmax25", "TPU25", "Rd25", "alpha", "theta", "..."],
-  "params": { "Vcmax25": 95.231833, "Jmax25": 181.472849, "...": "..." },
+  "params": { "Vcmax25": 95.231827, "Jmax25": 181.47181, "gm": null, "...": "..." },
   "warnings": [
     { "code": "columns_mapped", "level": "info", "message": "Using A=\"A\", Ci=\"Ci\", light=\"Qabs\", T=\"Tleaf\"." },
     { "code": "temperature_celsius", "level": "info", "message": "Treated \"Tleaf\" as °C and converted 66 value(s) to Kelvin." },
@@ -95,7 +96,7 @@ The full list of output fields is in [Output](../reference/output.md).
 `--format csv` prints one row per fit, which is handy for a spreadsheet:
 
 ```bash
-pk fit photosynthesis examples/aci.csv --model fvcb --set gm=1000000 --fix gm,alphaG --format csv
+pk fit photosynthesis examples/aci.csv --model fvcb --ci-based --format csv
 ```
 
 ## Next steps

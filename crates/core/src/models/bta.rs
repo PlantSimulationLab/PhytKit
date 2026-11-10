@@ -30,8 +30,8 @@ impl Bta {
         Bta {
             params: vec![
                 param("Em", 0.2, 0.001, 20.0)
-                    .units("mol m⁻² s⁻¹")
-                    .describe("conductance scale (mol m⁻² s⁻¹)"),
+                    .units("mmol m⁻² s⁻¹")
+                    .describe("maximum transpiration rate (gs in mol m⁻² s⁻¹ times Ds in mmol mol⁻¹)"),
                 param("i0", 20.0, 0.0, 500.0)
                     .units("µmol m⁻² s⁻¹")
                     .describe("light compensation offset (µmol m⁻² s⁻¹)"),

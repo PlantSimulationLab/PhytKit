@@ -20,6 +20,10 @@ g_s = \frac{E_m\,(Q + i_0)}{k + b\,Q + (Q + i_0)\,D_s}
 If your file has VPD in kPa, PhytKit converts it with
 \(D_s = 1000\,\mathrm{VPD}/P_{atm}\). It uses a `Patm` column if present, and
 101.325 kPa otherwise. The parameters `Em`, `i0`, `k` and `b` are empirical.
+With gs in mol m⁻² s⁻¹ and Ds in mmol mol⁻¹, `Em` is a transpiration rate in
+mmol m⁻² s⁻¹ (gs = Em/Ds at saturating light and high Ds), `i0` is in
+µmol m⁻² s⁻¹, `k` in µmol m⁻² s⁻¹ · mmol mol⁻¹, and `b` in mmol mol⁻¹. These are the
+units Helios's BMF model uses, so the four values carry over unchanged.
 
 ## Medlyn et al. (2011)
 

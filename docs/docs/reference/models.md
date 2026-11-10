@@ -309,7 +309,7 @@ g_s = \frac{E_m\,(Q + i_0)}{k + b\,Q + (Q + i_0)\,D_s}
 
 | Parameter | Units | Default | Lower bound | Upper bound | Fixed by default | Description |
 |---|---|---|---|---|---|---|
-| `Em` | mol m⁻² s⁻¹ | 0.2 | 0.001 | 20 |  | conductance scale (mol m⁻² s⁻¹) |
+| `Em` | mmol m⁻² s⁻¹ | 0.2 | 0.001 | 20 |  | maximum transpiration rate (gs in mol m⁻² s⁻¹ times Ds in mmol mol⁻¹) |
 | `i0` | µmol m⁻² s⁻¹ | 20 | 0 | 500 |  | light compensation offset (µmol m⁻² s⁻¹) |
 | `k` | µmol m⁻² s⁻¹ mmol mol⁻¹ | 100000 | 1 | 1e+07 |  | denominator constant |
 | `b` | mmol mol⁻¹ | 100 | 0 | 20000 |  | VPD/light sensitivity |

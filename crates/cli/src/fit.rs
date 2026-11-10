@@ -5,7 +5,7 @@ use crate::io::{load_file, LoadedFile};
 use crate::options::{did_you_mean, suggest, unknown_constraint, unknown_parameter};
 use crate::tools::{tool_by_name, FitData, Parser, Tool, ToolModel, TOOLS};
 use crate::{object, Obj, Output};
-use phytkit_core::model::{Model, Params};
+use phytkit_core::model::{Columns, Model, Params};
 use phytkit_core::models::model_by_name;
 use phytkit_core::numbers::{self, json as num};
 use phytkit_core::rescale::{
@@ -410,7 +410,7 @@ fn summarize(
     }
     o.insert("rescale".into(), rescale.map_or(Value::Null, Value::Object));
     let mut warnings = data.warnings.clone();
-    warnings.extend(fit_warnings(m, r));
+    warnings.extend(fit_warnings(m, &data.x, r));
     o.insert("warnings".into(), phytkit_core::warn::to_json(&warnings));
     o.insert("elapsedMs".into(), json!(ms.round() as u64));
     if predicted {
@@ -904,10 +904,37 @@ pub fn fit_command(args: &ParsedArgs) -> Result<Output> {
     Ok(Output::Json(o))
 }
 
-/// Warnings about the fit itself: it did not converge, or a fitted parameter ended on a
-/// bound (so the bound, not the data, set its value).
-pub fn fit_warnings(m: &dyn Model, r: &FitResult) -> Vec<Warning> {
+/// Warnings about the fit itself: it did not converge, a fitted parameter ended on a bound
+/// (so the bound, not the data, set its value), or temperature-response parameters were
+/// fitted to data from a single temperature.
+pub fn fit_warnings(m: &dyn Model, x: &Columns, r: &FitResult) -> Vec<Warning> {
     let mut out = Vec::new();
+    let temperature: Vec<&String> = r
+        .fitted
+        .iter()
+        .filter(|n| n.ends_with("_dHa") || n.ends_with("_dHd") || n.ends_with("_Topt"))
+        .collect();
+    if let (false, Some(t)) = (temperature.is_empty(), x.get("T")) {
+        let span = numbers::max_of(t) - numbers::min_of(t);
+        if span < 5.0 {
+            let names: Vec<&str> = temperature.iter().map(|s| s.as_str()).collect();
+            let scaled: Vec<&str> = r
+                .fitted
+                .iter()
+                .filter(|n| n.ends_with("25"))
+                .map(|s| s.as_str())
+                .collect();
+            out.push(Warning::new(
+                "temperature_response_unconstrained",
+                format!(
+                    "Leaf temperature spans only {} K, so {} cannot be determined from these data, and {} depend on the values they settle at. Fit only the other parameters with --fit (the temperature parameters then stay at their defaults), or fit curves measured at several temperatures together.",
+                    numbers::text(numbers::round_to(span, 2)),
+                    names.join(", "),
+                    if scaled.is_empty() { "the other parameters".to_string() } else { scaled.join(", ") }
+                ),
+            ));
+        }
+    }
     if !r.converged {
         out.push(Warning::new(
             "not_converged",

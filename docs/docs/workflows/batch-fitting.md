@@ -29,6 +29,18 @@ pk fit soil examples/soil.csv --units kPa --group-by sample --format csv
     per-curve constraints. Choose based on whether the curves should share
     parameters.
 
+!!! warning "A curve at one temperature can't fit a temperature response"
+    Each A–Ci curve is usually measured at one leaf temperature. Fitted alone,
+    it cannot determine `Vcmax_dHa`, `Vcmax_Topt` and the other temperature
+    parameters, and Vcmax25 then depends on where they settle. PhytKit warns
+    with `temperature_response_unconstrained`. List the parameters to fit, so
+    the temperature parameters stay at their defaults, and report those defaults
+    alongside the 25 °C values:
+
+    ```bash
+    pk fit photosynthesis examples/aci.csv --ci-based --group-by CurveID --fit Vcmax25,Jmax25,TPU25,Rd25,alpha,theta
+    ```
+
 ## Thousands of datasets in Python
 
 `fit_many` fits a list of datasets in parallel on all CPU cores. Use it when

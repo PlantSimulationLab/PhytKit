@@ -49,6 +49,7 @@ whose message starts with `[code]`. `info` entries are only in the list.
 | `rows_would_drop` | warning | Some merged files lack the column the fitter prefers; their rows would be dropped by pk fit. |
 | `not_converged` | warning | The fit stopped before converging; the parameters may not be the best fit. |
 | `parameter_at_bound` | warning | A fitted parameter ended on its bound: its value is set by the bound, not the data. |
+| `temperature_response_unconstrained` | warning | Temperature-response parameters (*_dHa, *_dHd, *_Topt) were fitted, but leaf temperature spans less than 5 K, so the data cannot determine them, and the 25 °C values depend on what they settle at. |
 
 !!! note "Changed in 0.2.0"
     Before 0.2.0, `warnings` was a list of plain strings, and the fit warnings

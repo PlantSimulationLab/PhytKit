@@ -164,6 +164,7 @@ fn params(p: Option<&Bound<'_, PyDict>>) -> PyResult<Params> {
 fn result_dict<'py>(
     py: Python<'py>,
     m: &dyn phytkit_core::Model,
+    x: &Columns,
     r: &FitResult,
 ) -> PyResult<Bound<'py, PyDict>> {
     let d = PyDict::new(py);
@@ -178,7 +179,7 @@ fn result_dict<'py>(
     d.set_item("r2", r.r2)?;
     d.set_item("iterations", r.iterations)?;
     d.set_item("converged", r.converged)?;
-    let w = phytkit_core::warn::to_json(&phytkit_cli::fit_warnings(m, r));
+    let w = phytkit_core::warn::to_json(&phytkit_cli::fit_warnings(m, x, r));
     d.set_item("warnings", to_py(py, &w)?)?;
     Ok(d)
 }
@@ -378,7 +379,7 @@ fn fit_arrays<'py>(
         constraint_weights,
     )?;
     let r = py.detach(|| fit(m, &cols, &y, &opts));
-    result_dict(py, m, &r)
+    result_dict(py, m, &cols, &r)
 }
 
 /// Fit the same model to many datasets in parallel. `datasets` is a list of `(x, y)` pairs.
@@ -420,8 +421,8 @@ fn fit_many<'py>(
     let results: Vec<FitResult> =
         py.detach(|| pool.install(|| data.par_iter().map(|(x, y)| fit(m, x, y, &opts)).collect()));
     let out = PyList::empty(py);
-    for r in &results {
-        out.append(result_dict(py, m, r)?)?;
+    for (r, (x, _)) in results.iter().zip(&data) {
+        out.append(result_dict(py, m, x, r)?)?;
     }
     Ok(out)
 }

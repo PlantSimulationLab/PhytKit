@@ -50,6 +50,7 @@ pub const WARNING_CODES: &[(&str, Level, &str)] = &[
     ("rows_would_drop", Level::Warning, "Some merged files lack the column the fitter prefers; their rows would be dropped by pk fit."),
     ("not_converged", Level::Warning, "The fit stopped before converging; the parameters may not be the best fit."),
     ("parameter_at_bound", Level::Warning, "A fitted parameter ended on its bound: its value is set by the bound, not the data."),
+    ("temperature_response_unconstrained", Level::Warning, "Temperature-response parameters (*_dHa, *_dHd, *_Topt) were fitted, but leaf temperature spans less than 5 K, so the data cannot determine them, and the 25 °C values depend on what they settle at."),
 ];
 
 #[derive(Clone, Debug, PartialEq)]

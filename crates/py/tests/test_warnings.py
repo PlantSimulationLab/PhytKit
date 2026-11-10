@@ -67,3 +67,18 @@ def test_python_warning_line_matches_the_format_harnesses_parse():
     pat = re.compile(r"^(?P<loc>.+?):\d+:\s*(?P<cls>\w*Warning):\s*(?P<msg>.*)$", re.M)
     found = [m.groupdict() for m in pat.finditer(err)]
     assert any(f["cls"] == "PhytKitWarning" and f["msg"].startswith("[not_converged]") for f in found), err
+
+
+def test_single_temperature_fit_of_temperature_parameters_is_flagged():
+    import csv
+
+    rows = [r for r in csv.DictReader(open(LEAF)) if r["CurveID"] == "1"]
+    x = {"Ci": [float(r["Ci"]) for r in rows], "Q": [float(r["Qabs"]) for r in rows], "T": [float(r["Tleaf"]) + 273.15 for r in rows]}
+    y = [float(r["A"]) for r in rows]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        base = ["Vcmax25", "Jmax25", "TPU25", "Rd25", "alpha", "theta"]
+        free = pk.fit_arrays("fvcb", x, y, init={"gm": 1e6}, fit_params=base + ["Vcmax_dHa", "Jmax_dHa"])
+        held = pk.fit_arrays("fvcb", x, y, init={"gm": 1e6}, fit_params=base)
+    assert "temperature_response_unconstrained" in [w["code"] for w in free["warnings"]]
+    assert "temperature_response_unconstrained" not in [w["code"] for w in held["warnings"]]

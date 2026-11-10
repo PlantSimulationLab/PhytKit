@@ -1,0 +1,14 @@
+{
+  "name": "plantsimulationlab-phytkit",
+  "description": "Claude Code plugins for PhytKit, plant physiology model fitting",
+  "owner": {
+    "name": "Plant Simulation Lab, UC Davis"
+  },
+  "plugins": [
+    {
+      "name": "phytkit",
+      "source": "./crates/py/claude-plugin/phytkit",
+      "description": "Fit plant physiology models with the phytkit Python package, using the guidance shipped with the installed version"
+    }
+  ]
+}

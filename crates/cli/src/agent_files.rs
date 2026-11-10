@@ -169,7 +169,7 @@ fn folder(raw: &str) -> Result<PathBuf> {
         )
         .hint("Give the project's folder."));
     }
-    Ok(std::fs::canonicalize(&p).unwrap_or(p))
+    Ok(std::path::absolute(&p).unwrap_or(p))
 }
 
 pub fn agent_files(args: &ParsedArgs) -> Result<Output> {
@@ -285,7 +285,7 @@ pub fn skills_install(args: &ParsedArgs) -> Result<Output> {
             ),
         )
         .map_err(|e| write_err(&target, e))?;
-        let path = std::fs::canonicalize(&target).unwrap_or(target);
+        let path = std::path::absolute(&target).unwrap_or(target);
         skills.push(json!({ "name": name, "path": posix(&path), "status": status }));
     }
     let out: Obj = object(json!({ "to": posix(&dest), "skills": skills }));

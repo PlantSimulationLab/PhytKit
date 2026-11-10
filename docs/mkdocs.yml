@@ -48,6 +48,10 @@ extra_javascript:
 plugins:
   - search
 
+# Writes llms.txt and llms-full.txt (with the shipped agent skill) into the built site.
+hooks:
+  - hooks/llms_txt.py
+
 markdown_extensions:
   - admonition
   - attr_list

@@ -1,0 +1,10 @@
+{
+  "name": "phytkit",
+  "description": "Fit plant physiology models with the phytkit Python package, using the guidance shipped with the installed version",
+  "author": {
+    "name": "Plant Simulation Lab, UC Davis"
+  },
+  "homepage": "https://plantsimulationlab.github.io/PhytKit/guide/agents/",
+  "repository": "https://github.com/PlantSimulationLab/PhytKit",
+  "license": "MIT"
+}

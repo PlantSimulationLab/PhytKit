@@ -182,7 +182,8 @@ fn check_metadata(m: &dyn Model, j: &Value, errs: &mut Vec<String>) {
             && c.label == t["label"].as_str().unwrap()
             && c.weight.to_bits() == num(&t["weight"]).to_bits()
             && c.description == opt_str(&t["description"])
-            && c.per_curve == t["perCurve"].as_bool().unwrap();
+            && c.per_curve == t["perCurve"].as_bool().unwrap()
+            && c.default_on == t.get("defaultOn").and_then(Value::as_bool).unwrap_or(true);
         if !ok {
             e(format!("constraint {c:?} vs {t}"));
         }

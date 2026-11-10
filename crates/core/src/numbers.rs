@@ -59,6 +59,17 @@ pub fn round_to(v: f64, digits: usize) -> f64 {
     }
 }
 
+/// `v` rounded for reporting a fitted value: six decimal places, or six significant figures
+/// when that keeps more digits (so 1.2378e-5 isn't reported as 0.000012).
+pub fn round_fit(v: f64) -> f64 {
+    if !v.is_finite() || v == 0.0 {
+        return v;
+    }
+    let mag = v.abs().log10().floor() as i64;
+    let digits = (5 - mag).clamp(6, 300) as usize;
+    round_to(v, digits)
+}
+
 /// `v` as text with exactly `digits` decimal places.
 pub fn fixed(v: f64, digits: usize) -> String {
     format!("{v:.digits$}")
@@ -92,6 +103,10 @@ mod tests {
         assert!(parse("12abc").is_nan());
         assert!(parse_finite("inf").is_nan());
         assert_eq!(round_to(1.23456789, 6), 1.234568);
+        assert_eq!(round_fit(123.456789123), 123.456789);
+        assert_eq!(round_fit(0.123456789), 0.123457);
+        assert_eq!(round_fit(1.23456789e-5), 1.23457e-5);
+        assert_eq!(round_fit(-2.0399321), -2.039932);
         assert_eq!(fixed(2.0, 3), "2.000");
         assert_eq!(text(100.0), "100");
         assert_eq!(json(f64::NAN), Value::Null);

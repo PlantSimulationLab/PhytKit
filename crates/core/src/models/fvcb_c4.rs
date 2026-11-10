@@ -183,7 +183,9 @@ fn default_weight(k: &str) -> f64 {
         C_VPVPR => 1.0,
         C_VPBREAK => 0.02,
         C_REGIME => 0.1,
-        C_RDTETHER => 10.0,
+        // Weak: Rd is poorly identified in C4, so the tether should settle Rd only where the
+        // data are flat. At 10 it overrode the data (Rd and Jmax biased ~20-65% low).
+        C_RDTETHER => 0.01,
         C_RATEWIN => 0.1,
         _ => f64::NAN,
     }
@@ -202,6 +204,7 @@ impl FvcbC4 {
             weight: default_weight(key),
             description: Some(description),
             per_curve,
+            default_on: true,
         };
         FvcbC4 {
             params: vec![
@@ -279,7 +282,7 @@ impl FvcbC4 {
                 c(
                     C_RDTETHER,
                     "Rd ≈ 0.02·Vcmax",
-                    "Soft tether of day respiration to Vcmax (poorly identified in C4)",
+                    "Weak prior pulling day respiration toward 0.02·Vcmax where the data leave Rd undetermined",
                     false,
                 ),
                 c(

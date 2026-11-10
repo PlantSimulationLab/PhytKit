@@ -54,9 +54,12 @@ pub struct ConstraintSpec {
     pub weight: f64,
     pub description: Option<&'static str>,
     pub per_curve: bool,
+    /// Whether the constraint is applied when the caller doesn't choose (PenaltyOptions::enabled is None).
+    pub default_on: bool,
 }
 
-/// Which penalty terms are on, and their weights. `enabled: None` means all on.
+/// Which penalty terms are on, and their weights. `enabled: None` means the constraints that are
+/// on by default (`ConstraintSpec::default_on`).
 pub struct PenaltyOptions<'a> {
     pub curves: Option<&'a [Vec<usize>]>,
     pub enabled: Option<&'a HashSet<String>>,

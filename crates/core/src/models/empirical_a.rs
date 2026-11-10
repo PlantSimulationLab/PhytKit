@@ -261,6 +261,6 @@ impl Model for EmpiricalA {
         predict(p, x)
     }
     fn latex(&self) -> Option<String> {
-        Some(r"A = A_{max}(T)\,\frac{Q}{Q + K_q(T)}\cdot\frac{C_i - \Gamma^*(T)}{C_i + K_{co}(T)} - R_d(T)".to_string())
+        Some(r"A = A_{max}(T)\,\frac{Q}{Q + K_q(T)}\cdot\frac{C_c - \Gamma^*(T)}{C_c + K_{co}(T)} - R_d(T),\quad C_c = C_i - A/g_m\ (C_c = C_i \text{ when } g_m \ge 99)".to_string())
     }
 }

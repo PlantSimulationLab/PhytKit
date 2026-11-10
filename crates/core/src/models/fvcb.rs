@@ -153,6 +153,10 @@ const C_LAST: &str = "ap_limits_high";
 const C_VCMAX: &str = "vcmax_window";
 const C_ALPHAG: &str = "alphag_zero";
 const C_VJ: &str = "vj_ratio";
+/// Constraints that are only applied when asked for (`--constraint`). On by default they bias
+/// ordinary fits: `ap_limits_high` forces TPU limitation onto every curve, even curves with no TPU
+/// plateau, and `vcmax_window` pulls Vcmax25 of high-capacity leaves down toward 130.
+const OFF_BY_DEFAULT: [&str; 2] = [C_LAST, C_VCMAX];
 
 fn default_weight(k: &str) -> f64 {
     match k {
@@ -181,6 +185,7 @@ impl Fvcb {
             weight: default_weight(key),
             description: Some(description),
             per_curve,
+            default_on: !OFF_BY_DEFAULT.contains(&key),
         };
         Fvcb {
             params: vec![
@@ -188,7 +193,7 @@ impl Fvcb {
                 param("Jmax25", 200.0, 5.0, 700.0).describe("max electron transport at 25C"),
                 param("TPU25", 25.0, 1.0, 100.0).describe("triose-phosphate utilization at 25C"),
                 param("Rd25", 1.5, 0.0, 15.0).describe("day respiration at 25C"),
-                param("gm", 0.25, 0.01, 0.5).describe("mesophyll conductance (Cc = Ci − A/gm)"),
+                param("gm", 0.25, 0.01, 5.0).describe("mesophyll conductance (Cc = Ci − A/gm)"),
                 param("alpha", 0.5, 0.1, 0.9).describe("quantum yield of electron transport"),
                 param("theta", 0.7, 0.1, 0.99).describe("curvature of J(Q)"),
                 param("alphaG", 0.0, 0.0, 1.0).describe("glycolate carbon returned (TPU)"),
@@ -247,7 +252,10 @@ impl Model for Fvcb {
         true
     }
     fn penalties(&self, p: &Params, x: &Columns, o: &PenaltyOptions) -> Option<Vec<f64>> {
-        let on = |k: &str| o.enabled.is_none_or(|e| e.contains(k));
+        let on = |k: &str| match o.enabled {
+            Some(e) => e.contains(k),
+            None => !OFF_BY_DEFAULT.contains(&k),
+        };
         let wt = |k: &str| {
             o.weights
                 .and_then(|w| w.get(k).copied())

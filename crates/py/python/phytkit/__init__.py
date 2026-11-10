@@ -14,7 +14,7 @@ from __future__ import annotations
 import os
 import warnings as _warnings
 from pathlib import Path as _Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, Union
 
 from . import _phytkit
 from ._phytkit import PhytKitError, __version__, build_info, models, predict
@@ -92,21 +92,55 @@ def run(argv: list[str]) -> dict | str:
     return _emit(_phytkit.run(list(argv)))
 
 
-def fit_arrays(model_name: str, x: Mapping[str, Any], y: Any, **options: Any) -> dict:
-    """Fit a model to data in memory. See `_phytkit.fit_arrays` for the arguments.
+def fit_arrays(
+    model_name: str,
+    x: Mapping[str, Any],
+    y: Any,
+    *,
+    fit_params: Iterable[str] | None = None,
+    init: Mapping[str, float] | None = None,
+    max_iter: int | None = None,
+    curves: Iterable[Iterable[int]] | None = None,
+    constraints: Iterable[str] | None = None,
+    constraint_weights: Mapping[str, float] | None = None,
+) -> dict:
+    """Fit a model to data in memory.
 
-    x maps each of the model's inputs (see `describe(model)`) to a sequence of values;
-    temperatures for the photosynthesis models are in kelvin. Returns params, fitted,
-    predicted, rmse, r2, iterations, converged and warnings; each level-"warning" entry is
-    also raised as a PhytKitWarning.
+    x maps each of the model's inputs (see `describe(model)["inputs"]`, with units) to a
+    sequence of values; leaf temperature T is in kelvin. y is the measured response.
+    fit_params: exactly the parameters to fit (default: those not fixed by default).
+    init: start values (within bounds for fitted parameters) or the values fixed parameters
+    are held at. max_iter: iteration limit (default 200). curves: 0-based row indices per
+    curve, for per-curve soft constraints. constraints: exactly the soft constraints to apply.
+    constraint_weights: {key: weight}.
+
+    Returns params, fitted, predicted, rmse, r2, iterations, converged and warnings; each
+    level-"warning" entry is also raised as a PhytKitWarning.
     """
-    return _emit(_phytkit.fit_arrays(model_name, x, y, **options))
+    return _emit(_phytkit.fit_arrays(
+        model_name, x, y, fit_params=fit_params, init=init, max_iter=max_iter, curves=curves,
+        constraints=constraints, constraint_weights=constraint_weights))
 
 
-def fit_many(model_name: str, datasets: Any, **options: Any) -> list[dict]:
+def fit_many(
+    model_name: str,
+    datasets: Iterable[tuple[Mapping[str, Any], Any]],
+    *,
+    fit_params: Iterable[str] | None = None,
+    init: Mapping[str, float] | None = None,
+    max_iter: int | None = None,
+    constraints: Iterable[str] | None = None,
+    constraint_weights: Mapping[str, float] | None = None,
+    threads: int | None = None,
+) -> list[dict]:
     """Fit the same model to many (x, y) datasets in parallel; results keep the input order.
-    See `_phytkit.fit_many`. threads=None uses RAYON_NUM_THREADS, else every core."""
-    return _emit(_phytkit.fit_many(model_name, datasets, **options))
+
+    Arguments as for fit_arrays. threads: worker threads; None uses RAYON_NUM_THREADS, else
+    every core. Results are bit-identical at any thread count.
+    """
+    return _emit(_phytkit.fit_many(
+        model_name, list(datasets), fit_params=fit_params, init=init, max_iter=max_iter,
+        constraints=constraints, constraint_weights=constraint_weights, threads=threads))
 
 
 def _flags(options: Mapping[str, Any]) -> list[str]:
@@ -142,33 +176,134 @@ def describe(model: str | None = None) -> dict:
     return run(["describe"] + ([model] if model else []))
 
 
-def fit(tool: str, *files: str | os.PathLike, **options: Any) -> dict | str:
+# A file or folder path. typing.Union, not `|`: this runs on Python 3.9.
+Path = Union[str, os.PathLike]
+
+
+def _options(values: dict, extra: Mapping[str, Any]) -> list[str]:
+    """Named keyword arguments (in the order of the COMMANDS table) plus any others, as flags.
+    Unknown names reach the command layer, which rejects them with a suggestion."""
+    out = {k: v for k, v in values.items() if v is not None and v is not False}
+    for name in ("fit", "fix"):
+        if isinstance(out.get(name), (list, tuple)):
+            out[name] = ",".join(out[name])
+    return _flags({**out, **extra})
+
+
+def fit(
+    tool: str,
+    *files: Path,
+    model: str | None = None,
+    fit: str | Iterable[str] | None = None,
+    fix: str | Iterable[str] | None = None,
+    set: Mapping[str, float] | None = None,
+    ci_based: bool = False,
+    max_iter: int | None = None,
+    no_constraint: Iterable[str] | None = None,
+    constraint: Iterable[str] | None = None,
+    constraints: str | None = None,
+    weight: Mapping[str, float] | None = None,
+    units: str | None = None,
+    group_by: str | None = None,
+    survey: Path | Iterable[Path] | None = None,
+    stat: str | None = None,
+    ref_ci: float | None = None,
+    predicted: bool = False,
+    format: str | None = None,
+    **options: Any,
+) -> dict | str:
     """Fit a tool's model to one or more files (`pk fit`).
 
-    tool: "photosynthesis", "stomatal", "hydraulics" or "soil".
-    options: model, fit=[...], fix=[...], set={...}, no_constraint=[...], constraints="none",
-    weight={...}, units, max_iter, group_by, survey=[...], stat, ref_ci, predicted, format.
-    One file returns that fit; several (or group_by) return a batch summary.
+    tool: "photosynthesis", "stomatal", "hydraulics" or "soil" (`describe()["tools"]`).
+    One file returns that fit; several files, or group_by, return a batch summary.
+    None or False leaves an option out, so the command's default applies.
+
+    model: the model to fit (default: the tool's first model that reads the file).
+    fit: exactly the parameters to fit; replaces the default set.
+    fix: parameters to hold at their start values.
+    set: {name: value} start values (within bounds for fitted parameters), or the values
+        fixed parameters are held at.
+    ci_based: fvcb only; gm at infinity (Cc = Ci) and alphaG at 0, the form Helios uses.
+    max_iter: iteration limit (default 200).
+    no_constraint: soft constraints to turn off. constraint: ones to turn on.
+    constraints: "none" turns every soft constraint off. weight: {key: weight}.
+    units: soil ψ units, "MPa" (default), "kPa", "hPa", "bar", "m" or "cm".
+    group_by: column whose values split one file into separate fits.
+    survey: survey file(s) to rescale photosynthesis curves to; stat: "mean" (default),
+        "median" or "max"; ref_ci: reference Ci for rescaling.
+    predicted: add point-by-point predicted and observed values.
+    format: "json" (default) or "csv".
+
+    Every result's "warnings" are {code, level, message}; level-"warning" entries are also
+    raised as PhytKitWarning.
     """
-    for name in ("fit", "fix"):
-        if isinstance(options.get(name), (list, tuple)):
-            options[name] = ",".join(options[name])
-    return _emit(_phytkit.run(["fit", tool, *_paths(files), *_flags(options)]))
+    values = dict(locals())
+    for k in ("tool", "files", "options"):
+        values.pop(k)
+    return _emit(_phytkit.run(["fit", tool, *_paths(files), *_options(values, options)]))
 
 
-def li600_correct(file: str | os.PathLike, **options: Any) -> dict | str:
+def li600_correct(
+    file: Path,
+    *,
+    sidedness: float | None = None,
+    thermal_conductance: float | None = None,
+    rows: bool = False,
+    out: Path | None = None,
+    format: str | None = None,
+    **options: Any,
+) -> dict | str:
     """LI-600 energy-balance gsw correction (`pk li600 correct`).
-    options: sidedness, thermal_conductance, rows, out, format."""
-    return _emit(_phytkit.run(["li600", "correct", os.fspath(file), *_flags(options)]))
+
+    sidedness: 1 (default) for stomata on one side of the leaf, 2 for both.
+    thermal_conductance: instrument heat exchange, W °C⁻¹ (default 0.007).
+    rows: add each reading's corrected values. out: also write the input file with the
+    corrected columns added. format: "json" (default) or "csv".
+    """
+    values = dict(locals())
+    for k in ("file", "options"):
+        values.pop(k)
+    return _emit(_phytkit.run(["li600", "correct", os.fspath(file), *_options(values, options)]))
 
 
-def li600_estimate(file: str | os.PathLike, **options: Any) -> dict | str:
-    """A, Ci and Cc from LI-600 gsw and photosynthesis parameters (`pk li600 estimate`).
-    options: model, params (a file), set={...}, ca, absorptance, min_gsw, rows, out, format."""
-    return _emit(_phytkit.run(["li600", "estimate", os.fspath(file), *_flags(options)]))
+def li600_estimate(
+    file: Path,
+    *,
+    model: str | None = None,
+    params: Path | None = None,
+    set: Mapping[str, float] | None = None,
+    ca: float | None = None,
+    absorptance: float | None = None,
+    min_gsw: float | None = None,
+    rows: bool = False,
+    out: Path | None = None,
+    format: str | None = None,
+    **options: Any,
+) -> dict | str:
+    """A, Ci and Cc for each LI-600 reading from its gsw and photosynthesis parameters
+    (`pk li600 estimate`).
+
+    model: "fvcb", "fvcbC4" or "empiricalA" (default: the params fit's model, else fvcb).
+    params: a parameter file (a pk fit JSON result, a CSV, a Parameter/Value table, or
+    name = value lines). set: {name: value} overrides. ca: ambient CO₂ (default 420).
+    absorptance: applied to Qamb (default 0.85). min_gsw: conductance floor (default 0.001;
+    0 leaves lower readings unsolved). rows: add each reading's solution. out: also write
+    the input file with the solved columns added. format: "json" (default) or "csv".
+    """
+    values = dict(locals())
+    for k in ("file", "options"):
+        values.pop(k)
+    return _emit(_phytkit.run(["li600", "estimate", os.fspath(file), *_options(values, options)]))
 
 
-def concat(*files: str | os.PathLike, **options: Any) -> dict | str:
+def concat(*files: Path, out: Path | None = None, format: str | None = None, **options: Any) -> dict | str:
     """Merge LI-6800 logs or CSVs under one header with a CurveID per file (`pk concat`).
-    options: out, format. Returns the merged CSV text unless out or format="json" is given."""
-    return _emit(_phytkit.run(["concat", *_paths(files), *_flags(options)]))
+
+    out: write the merged CSV to this file and return a JSON summary. format: "csv"
+    (default without out) or "json". Returns the merged CSV text unless out or
+    format="json" is given.
+    """
+    values = dict(locals())
+    for k in ("files", "options"):
+        values.pop(k)
+    return _emit(_phytkit.run(["concat", *_paths(files), *_options(values, options)]))

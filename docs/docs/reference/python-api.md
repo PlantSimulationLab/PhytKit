@@ -16,11 +16,18 @@ raise `PhytKitError` on failure.
 | Function | `pk` command |
 |---|---|
 | `pk.describe(model=None)` | `pk describe [model]` |
-| `pk.fit(tool, *files, **options)` | `pk fit <tool> <file...>` |
-| `pk.li600_correct(file, **options)` | `pk li600 correct <file>` |
-| `pk.li600_estimate(file, **options)` | `pk li600 estimate <file>` |
-| `pk.concat(*files, **options)` | `pk concat <file...>` |
+| `pk.fit(tool, *files, model=, fit=, fix=, set=, ci_based=, max_iter=, no_constraint=, constraint=, constraints=, weight=, units=, group_by=, survey=, stat=, ref_ci=, predicted=, format=)` | `pk fit <tool> <file...>` |
+| `pk.li600_correct(file, *, sidedness=, thermal_conductance=, rows=, out=, format=)` | `pk li600 correct <file>` |
+| `pk.li600_estimate(file, *, model=, params=, set=, ca=, absorptance=, min_gsw=, rows=, out=, format=)` | `pk li600 estimate <file>` |
+| `pk.concat(*files, out=, format=)` | `pk concat <file...>` |
+| `pk.agent_files(dir=".", *, dry_run=False)` | `pk agent-files [dir]` |
 | `pk.run(argv)` | Any `pk` command line, as a list of strings |
+
+Each keyword is named in the signature, in the order of `pk <command> --help`, and
+explained in the docstring (`help(pk.fit)`). A keyword left at `None` or `False` is left
+out, so the command's default applies. A keyword the command doesn't have is passed on and
+rejected as `unknown_option`, with a suggestion. `pk.skills_dir()` returns the folder of the
+agent skill shipped with the package.
 
 How keyword values become options:
 

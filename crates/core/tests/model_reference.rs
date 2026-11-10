@@ -18,8 +18,10 @@ const FIXTURE: &str = concat!(
 // Tolerances. Floating-point results can differ in the last bit between platforms, so
 // values must agree closely rather than exactly. A fit that takes the same number of
 // iterations must reach the same parameters, or an RMSE equal to FIT_PARAM_TOL; one that
-// takes a different path (possible where the objective is flat, as with empiricalA) must
-// reach an equally good fit.
+// takes a different path (possible where the objective is flat, as with empiricalA), or
+// that stopped at the iteration limit, must reach an equally good fit. Fit starts must lie
+// inside one basin of attraction: from a start on the boundary between two minima, last-bit
+// differences decide which one is found (fvcbC4 start_random was moved for this reason).
 const PRED_TOL: f64 = 1e-9; // relative to the largest |value| in the output vector
 const ABS_TOL: f64 = 1e-14; // absolute, for outputs that are all near zero (rounding noise)
 const FIT_PARAM_TOL: f64 = 1e-5; // relative, fitted parameters, when both took the same path
@@ -421,7 +423,9 @@ fn models_match_reference_values() {
             };
             max_prel = max_prel.max(prel);
             max_rmse_rel = max_rmse_rel.max(rmse_rel);
-            let same_path = ti == r.iterations;
+            // A fit that stopped at the iteration limit is a snapshot partway along its path, not
+            // an end point, so equal iteration counts there don't mean the same path.
+            let same_path = ti == r.iterations && (tc || r.converged);
             fit_lines.push(format!(
                 "      fit {label:<22} iters want {ti:>3} got {:>3}  converged want {tc} got {}  rmse want {trmse:.6e} got {:.6e}  max param rel diff {prel:.2e}{}",
                 r.iterations,

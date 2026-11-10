@@ -28,10 +28,15 @@ impl Pvcurve {
     pub fn new() -> Self {
         Pvcurve {
             params: vec![
-                param("πo", 2.0, 0.1, 5.0).describe("osmotic pressure at full turgor (MPa)"),
+                param("πo", 2.0, 0.1, 5.0)
+                    .units("MPa")
+                    .describe("osmotic pressure at full turgor (MPa)"),
                 param("wtlp", 0.85, 0.5, 0.99)
+                    .units("dimensionless")
                     .describe("relative water content at turgor loss point"),
-                param("ε", 1.0, 1.0, 3.0).describe("wall-elasticity exponent on turgor"),
+                param("ε", 1.0, 1.0, 3.0)
+                    .units("dimensionless")
+                    .describe("wall-elasticity exponent on turgor"),
             ],
         }
     }

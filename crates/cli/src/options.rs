@@ -756,7 +756,15 @@ pub fn describe_commands() -> Value {
                             Kind::Names => ("names", None),
                             Kind::Files => ("files", None),
                         };
-                        json!({ "name": format!("--{}", o.name), "type": ty, "choices": choices, "default": o.default, "repeatable": o.repeatable(), "description": o.help })
+                        // The accepted range, as checked by the parser.
+                        let range = match o.kind {
+                            Kind::Number(Range::Positive) => json!({ "min": 0, "minExclusive": true }),
+                            Kind::Number(Range::NonNegative) => json!({ "min": 0, "minExclusive": false }),
+                            Kind::Number(Range::Fraction) => json!({ "min": 0, "minExclusive": true, "max": 1 }),
+                            Kind::Count(min) => json!({ "min": min, "minExclusive": false }),
+                            _ => Value::Null,
+                        };
+                        json!({ "name": format!("--{}", o.name), "type": ty, "choices": choices, "range": range, "default": o.default, "repeatable": o.repeatable(), "description": o.help })
                     })
                     .collect();
                 json!({ "name": c.name, "usage": usage_line(c), "summary": c.summary, "arguments": args, "options": options, "example": c.example })

@@ -133,13 +133,26 @@ impl Raats {
     pub fn new() -> Self {
         Raats {
             params: vec![
-                param("θr", 0.05, 0.0, 0.5).describe("residual volumetric water content"),
-                param("θs", 0.45, 0.1, 1.0).describe("saturated volumetric water content"),
-                param("b*", 0.05, 1e-5, 1e5).describe("characteristic pressure head (ψ units)"),
-                param("α", 5.0, 0.01, 10.0).describe("Raats shape parameter α"),
-                param("β", 5.0, 0.1, 40.0).describe("Raats shape parameter β (dry end)"),
-                param("γ", 0.8, 0.01, 0.999).describe("Raats shape parameter γ (wet end, 0–1)"),
+                param("θr", 0.05, 0.0, 0.5)
+                    .units("m³ m⁻³")
+                    .describe("residual volumetric water content"),
+                param("θs", 0.45, 0.1, 1.0)
+                    .units("m³ m⁻³")
+                    .describe("saturated volumetric water content"),
+                param("b*", 0.05, 1e-5, 1e5)
+                    .units("MPa")
+                    .describe("characteristic pressure head (ψ units)"),
+                param("α", 5.0, 0.01, 10.0)
+                    .units("dimensionless")
+                    .describe("Raats shape parameter α"),
+                param("β", 5.0, 0.1, 40.0)
+                    .units("dimensionless")
+                    .describe("Raats shape parameter β (dry end)"),
+                param("γ", 0.8, 0.01, 0.999)
+                    .units("dimensionless")
+                    .describe("Raats shape parameter γ (wet end, 0–1)"),
                 param("λ", 0.5, -5.0, 5.0)
+                    .units("dimensionless")
                     .fixed()
                     .describe("Mualem tortuosity exponent (conductivity)"),
             ],

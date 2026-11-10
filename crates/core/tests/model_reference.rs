@@ -166,7 +166,8 @@ fn check_metadata(m: &dyn Model, j: &Value, errs: &mut Vec<String>) {
             && s.lb.map(f64::to_bits) == opt_num(&t["lb"]).map(f64::to_bits)
             && s.ub.map(f64::to_bits) == opt_num(&t["ub"]).map(f64::to_bits)
             && s.fixed == t["fixed"].as_bool().unwrap()
-            && s.description == opt_str(&t["description"]);
+            && s.description == opt_str(&t["description"])
+            && s.units == t["units"].as_str().unwrap_or("");
         if !ok {
             e(format!("param {s:?} vs {t}"));
         }

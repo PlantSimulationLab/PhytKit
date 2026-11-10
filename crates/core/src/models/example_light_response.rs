@@ -45,9 +45,15 @@ impl LightResponse {
     pub fn new() -> Self {
         LightResponse {
             params: vec![
-                param("Amax", 25.0, 1.0, 200.0),
-                param("Kq", 300.0, 5.0, 2000.0),
-                param("Rd", 1.5, 0.0, 10.0),
+                param("Amax", 25.0, 1.0, 200.0)
+                    .units("µmol m⁻² s⁻¹")
+                    .describe("light-saturated gross assimilation"),
+                param("Kq", 300.0, 5.0, 2000.0)
+                    .units("µmol m⁻² s⁻¹")
+                    .describe("absorbed light at half saturation"),
+                param("Rd", 1.5, 0.0, 10.0)
+                    .units("µmol m⁻² s⁻¹")
+                    .describe("day respiration"),
             ],
         }
     }

@@ -14,9 +14,10 @@ impl MyModel {
     pub fn new() -> Self {
         MyModel {
             params: vec![
-                param("a", 1.0, 0.0, 10.0).describe("scale"),
-                param("b", 0.5, 0.0, 5.0),
-                param("c", 0.0, -1.0, 1.0).fixed(),   // fixed by default; --fit lists exactly what to fit
+                param("a", 1.0, 0.0, 10.0).units("µmol m⁻² s⁻¹").describe("scale"),
+                param("b", 0.5, 0.0, 5.0).units("µmol m⁻² s⁻¹").describe("half-saturation light"),
+                // fixed by default; --fit lists exactly what to fit
+                param("c", 0.0, -1.0, 1.0).fixed().units("µmol m⁻² s⁻¹").describe("offset"),
             ],
         }
     }
@@ -37,6 +38,12 @@ impl Model for MyModel {
     }
 }
 ```
+
+Every parameter needs `.units(...)` and `.describe(...)`: `pk describe` reports both, and
+a unit test (`crates/core/src/units.rs`) fails on a parameter without them. Write units
+in the form the other models use (`µmol m⁻² s⁻¹`, `kJ mol⁻¹`, `K`, `dimensionless`), and
+give temperatures in kelvin. Each input name, and the quantity `predict` returns, needs an
+entry in `units::input` and `units::response`, unless it is already listed there.
 
 Optional methods:
 

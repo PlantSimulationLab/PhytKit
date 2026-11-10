@@ -26,14 +26,24 @@ impl ModifiedVanGenuchten {
     pub fn new() -> Self {
         ModifiedVanGenuchten {
             params: vec![
-                param("θr", 0.05, 0.0, 0.5).describe("residual volumetric water content"),
-                param("θs", 0.45, 0.1, 1.0).describe("saturated volumetric water content"),
-                param("α1", 1.0, 1e-4, 1e5).describe("MVG retention scale parameter (ψ⁻¹)"),
-                param("n1", 1.5, 0.2, 12.0).describe("MVG retention shape parameter"),
+                param("θr", 0.05, 0.0, 0.5)
+                    .units("m³ m⁻³")
+                    .describe("residual volumetric water content"),
+                param("θs", 0.45, 0.1, 1.0)
+                    .units("m³ m⁻³")
+                    .describe("saturated volumetric water content"),
+                param("α1", 1.0, 1e-4, 1e5)
+                    .units("MPa⁻¹")
+                    .describe("MVG retention scale parameter (ψ⁻¹)"),
+                param("n1", 1.5, 0.2, 12.0)
+                    .units("dimensionless")
+                    .describe("MVG retention shape parameter"),
                 param("α2", 1.0, 1e-4, 1e5)
+                    .units("MPa⁻¹")
                     .fixed()
                     .describe("MVG-RHC conductivity scale parameter (ψ⁻¹)"),
                 param("n2", 1.5, 0.2, 12.0)
+                    .units("dimensionless")
                     .fixed()
                     .describe("MVG-RHC conductivity shape parameter"),
             ],

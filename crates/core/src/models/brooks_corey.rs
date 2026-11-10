@@ -25,11 +25,20 @@ impl BrooksCorey {
     pub fn new() -> Self {
         BrooksCorey {
             params: vec![
-                param("θr", 0.05, 0.0, 0.5).describe("residual volumetric water content"),
-                param("θs", 0.45, 0.1, 1.0).describe("saturated volumetric water content"),
-                param("ψb", 0.03, 1e-5, 1e4).describe("air-entry (bubbling) potential (ψ units)"),
-                param("λ", 0.5, 0.05, 10.0).describe("pore-size distribution index"),
+                param("θr", 0.05, 0.0, 0.5)
+                    .units("m³ m⁻³")
+                    .describe("residual volumetric water content"),
+                param("θs", 0.45, 0.1, 1.0)
+                    .units("m³ m⁻³")
+                    .describe("saturated volumetric water content"),
+                param("ψb", 0.03, 1e-5, 1e4)
+                    .units("MPa")
+                    .describe("air-entry (bubbling) potential (ψ units)"),
+                param("λ", 0.5, 0.05, 10.0)
+                    .units("dimensionless")
+                    .describe("pore-size distribution index"),
                 param("L", 0.5, -5.0, 5.0)
+                    .units("dimensionless")
                     .fixed()
                     .describe("Mualem tortuosity exponent (conductivity)"),
             ],

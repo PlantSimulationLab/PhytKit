@@ -223,19 +223,19 @@ impl EmpiricalA {
     pub fn new() -> Self {
         EmpiricalA {
             params: vec![
-                param("Amax25", 25.0, 1.0, 200.0).describe("max assimilation at 25C"),
-                param("Rd25", 2.5, 0.0, 10.0).describe("dark respiration at 25C"),
-                param("GammaS25", 42.75, 10.0, 120.0).describe("CO2 compensation point at 25C"),
-                param("Kco25", 700.0, 50.0, 3000.0).describe("CO2 half-saturation at 25C"),
-                param("Kq25", 50.0, 5.0, 2000.0).describe("light half-saturation at 25C"),
-                param("Amax_dHa", 50.0, 1.0, 200.0).describe("Amax activation energy"),
-                param("Amax_dHd", 200.0, 100.0, 500.0).describe("Amax deactivation energy"),
-                param("Amax_Topt", 308.12, 288.0, 330.0).describe("Amax optimum temp (K)"),
-                param("Rd_dHa", 46.39, 1.0, 200.0).describe("Rd activation energy"),
-                param("GammaS_dHa", 37.83, 1.0, 200.0),
-                param("Kq_dHa", 70.0, 1.0, 200.0),
-                param("Kco_dHa", 79.43, 1.0, 200.0),
-                param("gm", 0.25, 0.01, 99.0).describe("mesophyll conductance"),
+                param("Amax25", 25.0, 1.0, 200.0).units("µmol m⁻² s⁻¹").describe("max assimilation at 25C"),
+                param("Rd25", 2.5, 0.0, 10.0).units("µmol m⁻² s⁻¹").describe("dark respiration at 25C"),
+                param("GammaS25", 42.75, 10.0, 120.0).units("µmol mol⁻¹").describe("CO2 compensation point at 25C"),
+                param("Kco25", 700.0, 50.0, 3000.0).units("µmol mol⁻¹").describe("CO2 half-saturation at 25C"),
+                param("Kq25", 50.0, 5.0, 2000.0).units("µmol m⁻² s⁻¹").describe("light half-saturation at 25C"),
+                param("Amax_dHa", 50.0, 1.0, 200.0).units("kJ mol⁻¹").describe("Amax activation energy"),
+                param("Amax_dHd", 200.0, 100.0, 500.0).units("kJ mol⁻¹").describe("Amax deactivation energy"),
+                param("Amax_Topt", 308.12, 288.0, 330.0).units("K").describe("temperature optimum of Amax, in kelvin (°C + 273.15; a value below 200 is read as °C)"),
+                param("Rd_dHa", 46.39, 1.0, 200.0).units("kJ mol⁻¹").describe("Rd activation energy"),
+                param("GammaS_dHa", 37.83, 1.0, 200.0).units("kJ mol⁻¹").describe("activation energy of Γ* (Arrhenius)"),
+                param("Kq_dHa", 70.0, 1.0, 200.0).units("kJ mol⁻¹").describe("activation energy of Kq (Arrhenius)"),
+                param("Kco_dHa", 79.43, 1.0, 200.0).units("kJ mol⁻¹").describe("activation energy of Kco (Arrhenius)"),
+                param("gm", 0.25, 0.01, 99.0).units("mol m⁻² s⁻¹ bar⁻¹").describe("mesophyll conductance (Cc = Ci − A/gm); 99 or more means none (Cc = Ci)"),
             ],
         }
     }

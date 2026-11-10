@@ -15,15 +15,17 @@ pub fn describe_model(name: &str) -> Result<Value> {
     let params: Vec<Value> = m
         .params()
         .iter()
-        .map(|p| json!({ "name": p.name, "default": p.default, "lb": p.lb, "ub": p.ub, "fixedByDefault": p.fixed, "description": p.description }))
+        .map(|p| json!({ "name": p.name, "units": p.units, "default": p.default, "lb": p.lb, "ub": p.ub, "fixedByDefault": p.fixed, "description": p.description }))
         .collect();
+    let io = |i: phytkit_core::model::InputSpec| json!({ "name": i.name, "units": i.units, "description": i.description });
+    let inputs: Vec<Value> = m.input_specs().into_iter().map(io).collect();
     let constraints: Vec<Value> = m
         .constraints()
         .iter()
         .map(|c| json!({ "key": c.key, "label": c.label, "weight": c.weight, "description": c.description, "perCurve": c.per_curve, "defaultOn": c.default_on }))
         .collect();
     Ok(
-        json!({ "name": m.name(), "inputs": m.inputs(), "params": params, "constraints": constraints, "latex": m.latex() }),
+        json!({ "name": m.name(), "inputs": inputs, "response": io(m.response()), "params": params, "constraints": constraints, "latex": m.latex() }),
     )
 }
 
@@ -45,6 +47,7 @@ pub fn describe(args: &ParsedArgs) -> Result<Obj> {
         .map(|(n, l)| json!({ "name": n, "label": l }))
         .collect();
     Ok(object(json!({
+        "version": env!("CARGO_PKG_VERSION"),
         "tools": tools,
         "li600": {
             "correct": {

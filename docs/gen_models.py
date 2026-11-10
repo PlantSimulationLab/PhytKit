@@ -12,25 +12,6 @@ RUST = Path(__file__).resolve().parents[1]
 PK = RUST / "target" / "release" / "pk"
 OUT = RUST / "docs" / "docs" / "reference" / "models.md"
 
-# Per-model input descriptions that differ from INPUTS.
-INPUT_OVERRIDES = {
-    ("bta", "Q"): "light (PPFD), µmol m⁻² s⁻¹; `pk fit stomatal` prefers `Qin` (incident) over `Qabs`, see Input files",
-}
-
-INPUTS = {
-    "Ci": "intercellular CO₂, µmol mol⁻¹",
-    "Q": "absorbed light (PPFD), µmol m⁻² s⁻¹",
-    "T": "leaf temperature, K",
-    "Ds": "leaf-to-air vapour pressure deficit as a mole fraction, mmol mol⁻¹",
-    "A": "net CO₂ assimilation, µmol m⁻² s⁻¹",
-    "Cs": "CO₂ at the leaf surface, µmol mol⁻¹",
-    "D": "leaf-to-air vapour pressure deficit, kPa",
-    "P": "water potential, MPa (negative)",
-    "w": "relative water content, 0–1",
-    "psi": "matric potential, MPa (negative)",
-}
-
-
 def pk(*args):
     return json.loads(subprocess.run([str(PK), *args], capture_output=True, text=True, check=True).stdout)
 
@@ -73,10 +54,12 @@ def main():
             lines += ["Available from Python (`fit_arrays`, `fit_many`, `predict`); no `pk fit` tool uses it.", ""]
         if m["latex"]:
             lines += ["\\[", m["latex"], "\\]", ""]
-        lines += ["**Inputs:** " + ", ".join(f"`{i}` ({INPUT_OVERRIDES.get((m['name'], i), INPUTS.get(i, ''))})" for i in m["inputs"]), ""]
-        lines += ["| Parameter | Default | Lower bound | Upper bound | Fixed by default | Description |", "|---|---|---|---|---|---|"]
+        lines += ["**Inputs:** " + ", ".join(f"`{i['name']}` ({i['description']}, {i['units']})" for i in m["inputs"]), ""]
+        r = m["response"]
+        lines += [f"**Predicts:** `{r['name']}` ({r['description']}, {r['units']})", ""]
+        lines += ["| Parameter | Units | Default | Lower bound | Upper bound | Fixed by default | Description |", "|---|---|---|---|---|---|---|"]
         for p in m["params"]:
-            lines.append(f"| `{p['name']}` | {num(p['default'])} | {num(p['lb'])} | {num(p['ub'])} | {'yes' if p['fixedByDefault'] else ''} | {p['description'] or ''} |")
+            lines.append(f"| `{p['name']}` | {p['units']} | {num(p['default'])} | {num(p['lb'])} | {num(p['ub'])} | {'yes' if p['fixedByDefault'] else ''} | {p['description'] or ''} |")
         if m["constraints"]:
             lines += ["", "**Soft constraints** (penalties added to the fit; turn one off with `--no-constraint <key>`, all with `--constraints none`, turn on one that is off by default with `--constraint <key>`, reweight with `--weight <key>=<w>`):", ""]
             lines += ["| Key | Constraint | On by default | Default weight | Per curve | What it does |", "|---|---|---|---|---|---|"]

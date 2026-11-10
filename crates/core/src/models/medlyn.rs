@@ -26,8 +26,12 @@ impl Medlyn {
     pub fn new() -> Self {
         Medlyn {
             params: vec![
-                param("gs0", 0.01, 0.0, 1.0).describe("residual conductance (mol m⁻² s⁻¹)"),
-                param("g1", 3.0, 0.01, 30.0).describe("slope, sensitivity to VPD (√kPa)"),
+                param("gs0", 0.01, 0.0, 1.0)
+                    .units("mol m⁻² s⁻¹")
+                    .describe("residual conductance (mol m⁻² s⁻¹)"),
+                param("g1", 3.0, 0.01, 30.0)
+                    .units("kPa^0.5")
+                    .describe("slope, sensitivity to VPD (√kPa)"),
             ],
         }
     }

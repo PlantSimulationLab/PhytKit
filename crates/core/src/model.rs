@@ -19,6 +19,8 @@ pub struct ParamSpec {
     pub ub: Option<f64>,
     pub fixed: bool,
     pub description: Option<&'static str>,
+    /// Machine-readable units (`pk describe` reports them); "dimensionless" when unitless.
+    pub units: &'static str,
 }
 
 impl ParamSpec {
@@ -30,6 +32,7 @@ impl ParamSpec {
             ub,
             fixed: false,
             description: None,
+            units: "",
         }
     }
     pub const fn fixed(mut self) -> Self {
@@ -40,6 +43,18 @@ impl ParamSpec {
         self.description = Some(d);
         self
     }
+    pub const fn units(mut self, u: &'static str) -> Self {
+        self.units = u;
+        self
+    }
+}
+
+/// A model input column, or its response (the quantity it predicts), with units.
+#[derive(Clone, Debug, PartialEq)]
+pub struct InputSpec {
+    pub name: &'static str,
+    pub units: &'static str,
+    pub description: &'static str,
 }
 
 /// Shorthand for a parameter with both bounds.
@@ -92,6 +107,18 @@ pub trait Model: Send + Sync {
     }
     fn latex(&self) -> Option<String> {
         None
+    }
+    /// Each input with its units and meaning. The default looks the names up in
+    /// `units::input`, which knows every input a built-in model uses.
+    fn input_specs(&self) -> Vec<InputSpec> {
+        self.inputs()
+            .iter()
+            .map(|n| crate::units::input(self.name(), n))
+            .collect()
+    }
+    /// The quantity `predict` returns, with its units.
+    fn response(&self) -> InputSpec {
+        crate::units::response(self.name())
     }
     /// Quantities derived from a parameter set (e.g. psi_tlp). Key order matters.
     fn derived(&self, _p: &Params) -> Option<IndexMap<String, f64>> {

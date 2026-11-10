@@ -29,10 +29,18 @@ impl Bta {
     pub fn new() -> Self {
         Bta {
             params: vec![
-                param("Em", 0.2, 0.001, 20.0).describe("conductance scale (mol m⁻² s⁻¹)"),
-                param("i0", 20.0, 0.0, 500.0).describe("light compensation offset (µmol m⁻² s⁻¹)"),
-                param("k", 100000.0, 1.0, 1e7).describe("denominator constant"),
-                param("b", 100.0, 0.0, 20000.0).describe("VPD/light sensitivity"),
+                param("Em", 0.2, 0.001, 20.0)
+                    .units("mol m⁻² s⁻¹")
+                    .describe("conductance scale (mol m⁻² s⁻¹)"),
+                param("i0", 20.0, 0.0, 500.0)
+                    .units("µmol m⁻² s⁻¹")
+                    .describe("light compensation offset (µmol m⁻² s⁻¹)"),
+                param("k", 100000.0, 1.0, 1e7)
+                    .units("µmol m⁻² s⁻¹ mmol mol⁻¹")
+                    .describe("denominator constant"),
+                param("b", 100.0, 0.0, 20000.0)
+                    .units("mmol mol⁻¹")
+                    .describe("VPD/light sensitivity"),
             ],
         }
     }

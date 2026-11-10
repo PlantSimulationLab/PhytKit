@@ -16,7 +16,7 @@ values are all errors.
 
 ```bash
 pk describe            # every tool, model and the li600 options
-pk describe <model>    # one model: inputs, parameters, bounds, constraints, equation
+pk describe <model>    # one model: inputs, response and parameters (with units), bounds, constraints, equation
 ```
 
 ## `pk fit`

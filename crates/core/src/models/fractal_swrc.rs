@@ -63,13 +63,23 @@ impl FractalSwrc {
     pub fn new() -> Self {
         FractalSwrc {
             params: vec![
-                param("θr", 0.05, 0.0, 0.5).describe("residual volumetric water content"),
-                param("θs", 0.45, 0.1, 1.0).describe("saturated volumetric water content"),
+                param("θr", 0.05, 0.0, 0.5)
+                    .units("m³ m⁻³")
+                    .describe("residual volumetric water content"),
+                param("θs", 0.45, 0.1, 1.0)
+                    .units("m³ m⁻³")
+                    .describe("saturated volumetric water content"),
                 param("D", 1.5, 1.001, 1.999)
+                    .units("dimensionless")
                     .describe("fractal dimension of the pore-size distribution"),
-                param("r_max", 5.0, 1e-3, 1e4).describe("maximum equivalent pore radius (µm)"),
-                param("δ", 0.02, 0.0, 0.3).describe("relative adsorptive water-film thickness"),
+                param("r_max", 5.0, 1e-3, 1e4)
+                    .units("µm")
+                    .describe("maximum equivalent pore radius (µm)"),
+                param("δ", 0.02, 0.0, 0.3)
+                    .units("dimensionless")
+                    .describe("relative adsorptive water-film thickness"),
                 param("L", 0.5, -5.0, 5.0)
+                    .units("dimensionless")
                     .fixed()
                     .describe("Mualem tortuosity exponent (conductivity)"),
             ],

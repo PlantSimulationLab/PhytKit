@@ -26,10 +26,18 @@ impl VanGenuchten {
     pub fn new() -> Self {
         VanGenuchten {
             params: vec![
-                param("θr", 0.05, 0.0, 0.5).describe("residual volumetric water content"),
-                param("θs", 0.45, 0.1, 1.0).describe("saturated volumetric water content"),
-                param("α", 1.0, 1e-4, 1e5).describe("inverse air-entry pressure (ψ⁻¹)"),
-                param("n", 1.5, 1.01, 12.0).describe("pore-size distribution parameter"),
+                param("θr", 0.05, 0.0, 0.5)
+                    .units("m³ m⁻³")
+                    .describe("residual volumetric water content"),
+                param("θs", 0.45, 0.1, 1.0)
+                    .units("m³ m⁻³")
+                    .describe("saturated volumetric water content"),
+                param("α", 1.0, 1e-4, 1e5)
+                    .units("MPa⁻¹")
+                    .describe("inverse air-entry pressure (ψ⁻¹)"),
+                param("n", 1.5, 1.01, 12.0)
+                    .units("dimensionless")
+                    .describe("pore-size distribution parameter"),
             ],
         }
     }

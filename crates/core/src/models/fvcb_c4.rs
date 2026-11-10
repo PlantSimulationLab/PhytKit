@@ -208,55 +208,55 @@ impl FvcbC4 {
         };
         FvcbC4 {
             params: vec![
-                param("Vpmax25", 200.0, 1.0, 600.0).describe("max PEP carboxylation at 25C"),
-                param("Vcmax25", 40.0, 1.0, 200.0).describe("max Rubisco carboxylation at 25C"),
-                param("Jmax25", 247.69, 5.0, 700.0)
+                param("Vpmax25", 200.0, 1.0, 600.0).units("µmol m⁻² s⁻¹").describe("max PEP carboxylation at 25C"),
+                param("Vcmax25", 40.0, 1.0, 200.0).units("µmol m⁻² s⁻¹").describe("max Rubisco carboxylation at 25C"),
+                param("Jmax25", 247.69, 5.0, 700.0).units("µmol m⁻² s⁻¹")
                     .describe("max linear electron transport at 25C"),
-                param("Rd25", 1.0, 0.0, 15.0).describe("day respiration at 25C"),
-                param("Vpmax_dHa", 50.1, 1.0, 200.0),
-                param("Vcmax_dHa", 78.0, 1.0, 200.0),
-                param("Jmax_dHa", 77.9, 1.0, 200.0),
-                param("Jmax_dHd", 260.0, 100.0, 500.0),
-                param("Jmax_Topt", 316.15, 288.0, 333.0),
-                param("Rd_dHa", 66.4, 1.0, 200.0),
-                param("gm", 1.0, 0.05, 5.0)
+                param("Rd25", 1.0, 0.0, 15.0).units("µmol m⁻² s⁻¹").describe("day respiration at 25C"),
+                param("Vpmax_dHa", 50.1, 1.0, 200.0).units("kJ mol⁻¹").describe("activation energy of Vpmax (Arrhenius)"),
+                param("Vcmax_dHa", 78.0, 1.0, 200.0).units("kJ mol⁻¹").describe("activation energy of Vcmax (Arrhenius)"),
+                param("Jmax_dHa", 77.9, 1.0, 200.0).units("kJ mol⁻¹").describe("activation energy of Jmax (peaked Arrhenius)"),
+                param("Jmax_dHd", 260.0, 100.0, 500.0).units("kJ mol⁻¹").describe("deactivation energy of Jmax"),
+                param("Jmax_Topt", 316.15, 288.0, 333.0).units("K").describe("temperature optimum of Jmax, in kelvin (°C + 273.15; a value below 200 is read as °C); above 1000 K, Jmax follows plain Arrhenius"),
+                param("Rd_dHa", 66.4, 1.0, 200.0).units("kJ mol⁻¹").describe("activation energy of Rd (Arrhenius)"),
+                param("gm", 1.0, 0.05, 5.0).units("mol m⁻² s⁻¹ bar⁻¹")
                     .fixed()
                     .describe("mesophyll conductance (Cm = Ci − A/gm)"),
-                param("gbs", 0.003, 1e-4, 0.05)
+                param("gbs", 0.003, 1e-4, 0.05).units("mol m⁻² s⁻¹ bar⁻¹")
                     .fixed()
                     .describe("bundle-sheath conductance"),
-                param("Vpr", 80.0, 20.0, 200.0)
+                param("Vpr", 80.0, 20.0, 200.0).units("µmol m⁻² s⁻¹")
                     .fixed()
                     .describe("PEP regeneration cap"),
-                param("alpha_psII", 0.0, 0.0, 1.0)
+                param("alpha_psII", 0.0, 0.0, 1.0).units("dimensionless")
                     .fixed()
                     .describe("fraction of PSII activity in bundle sheath"),
-                param("x_etr", 0.4, 0.05, 0.95)
+                param("x_etr", 0.4, 0.05, 0.95).units("dimensionless")
                     .fixed()
                     .describe("fraction of linear ETR to mesophyll"),
-                param("fcyc", 0.45, 0.0, 0.85)
+                param("fcyc", 0.45, 0.0, 0.85).units("dimensionless")
                     .fixed()
                     .describe("cyclic electron flow fraction"),
-                param("theta_etr", 0.7, 0.1, 0.99)
+                param("theta_etr", 0.7, 0.1, 0.99).units("dimensionless")
                     .fixed()
                     .describe("curvature of J(Q)"),
-                param("Kc25", 1210.0, 500.0, 3000.0)
+                param("Kc25", 1210.0, 500.0, 3000.0).units("µbar")
                     .fixed()
                     .describe("Rubisco Kc at 25C (μbar)"),
-                param("Kc_dHa", 64.2, 1.0, 200.0).fixed(),
-                param("Ko25", 292000.0, 1e5, 5e5)
+                param("Kc_dHa", 64.2, 1.0, 200.0).units("kJ mol⁻¹").describe("activation energy of Kc (Arrhenius)").fixed(),
+                param("Ko25", 292000.0, 1e5, 5e5).units("µbar")
                     .fixed()
                     .describe("Rubisco Ko at 25C (μbar)"),
-                param("Ko_dHa", 10.5, 1.0, 200.0).fixed(),
-                param("Kp25", 82.0, 20.0, 300.0)
+                param("Ko_dHa", 10.5, 1.0, 200.0).units("kJ mol⁻¹").describe("activation energy of Ko (Arrhenius)").fixed(),
+                param("Kp25", 82.0, 20.0, 300.0).units("µbar")
                     .fixed()
                     .describe("PEPC Kp at 25C (μbar)"),
-                param("Kp_dHa", 38.3, 1.0, 200.0).fixed(),
-                param("GammaStar25", 3.81679e-4, 1e-4, 1e-3)
+                param("Kp_dHa", 38.3, 1.0, 200.0).units("kJ mol⁻¹").describe("activation energy of Kp (Arrhenius)").fixed(),
+                param("GammaStar25", 3.81679e-4, 1e-4, 1e-3).units("dimensionless")
                     .fixed()
                     .describe("half Rubisco O2/CO2 specificity (dimensionless)"),
-                param("GammaStar_dHa", 31.1, 1.0, 200.0).fixed(),
-                param("Om25", 210000.0, 1e5, 3e5)
+                param("GammaStar_dHa", 31.1, 1.0, 200.0).units("kJ mol⁻¹").describe("activation energy of γ* (Arrhenius)").fixed(),
+                param("Om25", 210000.0, 1e5, 3e5).units("µbar")
                     .fixed()
                     .describe("bundle-sheath O2 partial pressure (μbar)"),
             ],

@@ -53,10 +53,34 @@ The Python bindings call `run` too, so the CLI and Python can't drift apart.
 
 ## `phytkit` (Python)
 
-`crates/py/src/lib.rs` exposes `run`, `fit_arrays`, `fit_many`, `predict` and
-`models` from Rust. `python/phytkit/__init__.py` adds the keyword-argument
-wrappers (`fit`, `li600_correct`, ...). `fit_many` releases Python's global
-lock and fits datasets in parallel with Rayon.
+`crates/py/src/lib.rs` exposes `run`, `fit_arrays`, `fit_many`, `predict`,
+`models` and `build_info` from Rust. `python/phytkit/__init__.py` adds:
+
+- the keyword-argument wrappers (`fit`, `li600_correct`, ...), whose keywords
+  are the command's options from the `COMMANDS` table (`test_signatures.py`
+  keeps them equal);
+- `PhytKitWarning`, raised for each `warning`-level entry in a result.
+
+`fit_many` releases Python's global lock and fits datasets in parallel in its
+own Rayon pool, the only place PhytKit starts threads. `crates/py/build.rs`
+records the git commit and build kind for `build_info()`.
+
+## Guidance for agents
+
+The agent skill in `python/phytkit/skills/phytkit/` (`SKILL.md` and
+`references/`) is the single source of usage guidance for AI agents. It ships in
+the wheel (`phytkit.skills_dir()`). Everything else is generated from it or
+points at it:
+
+- `pk agent-files` writes it into a user's `AGENTS.md`
+  (`crates/cli/src/agent_files.rs`; the Python package passes the skill's
+  location to the command layer on import);
+- the Claude Code plugin in `crates/py/claude-plugin/` points at the installed copy;
+- `docs/hooks/llms_txt.py` appends it to the site's `llms-full.txt`.
+
+`test_skill.py` checks every name the skill uses against `pk describe`. The
+repository's own entry points are `AGENTS.md` (for people using PhytKit),
+`CLAUDE.md` (which imports `AGENTS.md`), and `CONTRIBUTING.md` (for developers).
 
 ## Conventions
 
@@ -68,3 +92,8 @@ lock and fits datasets in parallel with Rayon.
   residual that the fitter rejects, rather than a finite but wrong value.
 - **Error messages** from the parsers reach the JSON output, so they're written
   for the person reading them.
+- **Warnings** have a stable `code` and a `level` (`phytkit_core::warn`). Add
+  a code to `WARNING_CODES` and to the table in `reference/output.md`; never
+  rename or remove one.
+- **Units** are part of every `ParamSpec` and of `crates/core/src/units.rs`, and
+  `pk describe` reports them.

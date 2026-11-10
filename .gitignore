@@ -16,9 +16,9 @@ wheelhouse/
 docs/site/
 docs/_site/
 
-# Instructions for the primary developer's own coding agent: per-checkout, not tracked.
-# Outside contributors and AI agents: see AGENTS.md.
-CLAUDE.md
+# The primary developer's private agent notes (Claude Code loads CLAUDE.local.md after the
+# committed CLAUDE.md, which only imports AGENTS.md). Contributors: see CONTRIBUTING.md.
+CLAUDE.local.md
 .claude/
 
 # Editors / OS

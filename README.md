@@ -8,7 +8,7 @@ Plant physiology model fitting, written in Rust: photosynthesis (FvCB C3 and C4,
 | `crates/cli` (`phytkit-cli`) | The `pk` command, plus the command layer the Python package calls |
 | `crates/py` (`phytkit` in Python) | Python bindings, built with maturin |
 
-Documentation: <https://plantsimulationlab.github.io/PhytKit/>. AI agents and contributors: see [AGENTS.md](AGENTS.md).
+Documentation: <https://plantsimulationlab.github.io/PhytKit/>. AI coding agents: see [AGENTS.md](AGENTS.md). Contributors: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Install
 

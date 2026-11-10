@@ -154,3 +154,44 @@ def test_installed_skill_matches_the_source():
             twin = installed / f.relative_to(SRC)
             assert twin.is_file(), f"{twin} is missing from the installed package"
             assert twin.read_bytes() == f.read_bytes(), f"{twin} differs from the source"
+
+
+ROOT = Path(__file__).resolve().parents[3]
+
+
+def test_repository_entry_points():
+    # AGENTS.md: one screen for people who use PhytKit, pointing at the skill and agent-files.
+    agents = text(ROOT / "AGENTS.md")
+    assert len(agents.splitlines()) <= 60
+    assert "crates/py/python/phytkit/skills/phytkit/SKILL.md" in agents
+    for must in ("pk agent-files", "pk skills path", "pk describe", "CONTRIBUTING.md"):
+        assert must in agents, must
+    # Claude Code reads CLAUDE.md, not AGENTS.md, once any CLAUDE.md exists: import it.
+    assert text(ROOT / "CLAUDE.md") == "@AGENTS.md\n"
+    # Every repository path the two guides name exists.
+    for guide in ("AGENTS.md", "CONTRIBUTING.md"):
+        for path in re.findall(r"`((?:crates|docs)/[^`*<> ]+)`", text(ROOT / guide)):
+            assert (ROOT / path.rstrip("/")).exists(), f"{guide} names {path}"
+    assert "potential addition to the phytkit skill" in text(ROOT / "CONTRIBUTING.md")
+
+
+PLUGIN = ROOT / "crates" / "py" / "claude-plugin" / "phytkit"
+
+
+def test_claude_plugin_points_at_the_installed_skill_and_copies_nothing():
+    import json
+
+    pointer = text(PLUGIN / "skills" / "phytkit" / "SKILL.md")
+    skill = text(SKILL)
+    # Same frontmatter, so the plugin triggers on the same requests ...
+    assert frontmatter(pointer) == frontmatter(skill)
+    assert re.match(r"^---\n.*?\n---\n", pointer, re.S).group(0) == re.match(r"^---\n.*?\n---\n", skill, re.S).group(0)
+    # ... but it finds the installed skill rather than holding a second copy of the guidance.
+    assert "skills_dir()" in pointer and "pk agent-files" in pointer
+    assert "## Rules that hold for every fit" not in pointer
+    plugin = json.loads(text(PLUGIN / ".claude-plugin" / "plugin.json"))
+    assert plugin["name"] == "phytkit" and "version" not in plugin
+    market = json.loads(text(ROOT / ".claude-plugin" / "marketplace.json"))
+    (entry,) = market["plugins"]
+    assert entry["name"] == "phytkit" and (ROOT / entry["source"]).resolve() == PLUGIN.resolve()
+    assert f"phytkit@{market['name']}" in text(ROOT / "docs" / "docs" / "guide" / "agents.md")

@@ -47,7 +47,8 @@ instrument's category row, and skips the units row. It needs these columns:
     ```
 
 The correction's overestimate grows with conductance. In the sample file it
-runs from about 2% at gsw 0.1 to about 15% near 0.5 mol m⁻² s⁻¹.
+runs from about 2% at gsw 0.1 to about 11–13% near 0.5 and nearly 15% at the
+highest readings (about 0.55–0.59 mol m⁻² s⁻¹).
 
 ## Next
 

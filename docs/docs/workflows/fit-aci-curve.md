@@ -32,8 +32,9 @@ merged with [`pk concat`](merge-li6800-logs.md) have one.
 3. Check the result before you use it:
 
     - `warnings`: did PhytKit use the columns and units you expected?
-    - `converged`: `false` means it stopped at the iteration limit. Rerun
-      with `--max-iter 400` or more.
+    - `converged`: `false` means it stopped at the iteration limit (rerun
+      with `--max-iter 400` or more) or stalled away from a minimum (try
+      other starting values with `--set`).
     - `r2` and `rmse`: how closely the model follows the data.
     - `params`: values sitting exactly at a bound (`pk describe fvcb`) are
       poorly determined by the data.
@@ -72,12 +73,17 @@ The sample data are C3, so these are for illustration only. See
 
 ## Constraints
 
-FvCB's soft constraints are all on by default. To fit without them, or to
-weaken one:
+Most of FvCB's soft constraints are on by default; `ap_limits_high` and
+`vcmax_window` are off (see
+[Photosynthesis models](../concepts/photosynthesis.md#soft-constraints)). To
+fit without any, to turn one on or off, or to change one's weight (`--weight`
+sets the weight outright; the defaults are listed by `pk describe fvcb`, and
+`vj_ratio`'s is 0.1):
 
 ```bash
 pk fit photosynthesis examples/aci.csv --model fvcb --constraints none
-pk fit photosynthesis examples/aci.csv --model fvcb --no-constraint ap_limits_high --weight vj_ratio=0.5
+pk fit photosynthesis examples/aci.csv --model fvcb --no-constraint vj_ratio
+pk fit photosynthesis examples/aci.csv --model fvcb --constraint vcmax_window --weight vj_ratio=0.02
 ```
 
 ## In Python

@@ -32,14 +32,15 @@ files, or with `--group-by`, each file or group is fitted separately (see
 | Option | Value | Meaning |
 |---|---|---|
 | `--model` | model name | Model to fit. Defaults: `fvcb`, `bta`, `vulnerability`, `vanGenuchten`. If you leave it out for `stomatal`, `hydraulics` or `soil`, the first model whose parser reads the file is used. |
-| `--fit` | names, repeatable | Fit only these parameters |
+| `--fit` | names, repeatable | Fit exactly these parameters (replaces the default set) |
 | `--fix` | names, repeatable | Hold these parameters fixed |
-| `--set` | `name=value`, repeatable | Starting value, or the value a fixed parameter is held at |
+| `--set` | `name=value`, repeatable | Starting value (must be within the parameter's bounds), or the value a fixed parameter is held at (any value) |
 | `--max-iter` | whole number ≥ 1 | Iteration limit (default 200) |
 | `--no-constraint` | key, repeatable | Turn off one soft constraint |
+| `--constraint` | key, repeatable | Turn on a soft constraint that is off by default |
 | `--constraints` | `none` | Turn off every soft constraint |
 | `--weight` | `key=value`, repeatable | Weight for one soft constraint |
-| `--units` | `MPa`, `kPa`, `bar`, `m`, `cm` | Units of ψ (`soil` only; default MPa) |
+| `--units` | `MPa`, `kPa`, `hPa`, `bar`, `m`, `cm` | Units of ψ (`soil` only). Without it: the unit the ψ column's name states, else MPa |
 | `--group-by` | column | Split one file into a fit per value of the column |
 | `--survey` | file, repeatable | Rescale mode: survey points to rescale A to (`photosynthesis` only) |
 | `--stat` | `mean`, `median`, `max` | Statistic for rescaling (default `mean`) |
@@ -69,8 +70,8 @@ pk li600 estimate <file|-> [options]
 
 | Option | Value | Meaning |
 |---|---|---|
-| `--model` | `fvcb`, `fvcbC4`, `empiricalA` | Photosynthesis model (default `fvcb`) |
-| `--params` | file | Parameter file: `pk fit` JSON, a CSV of fitted parameters, a Parameter/Value table, or `name = value` lines |
+| `--model` | `fvcb`, `fvcbC4`, `empiricalA` | Photosynthesis model. Default: the model a `--params` fit JSON was fitted with, else `fvcb` |
+| `--params` | file | Parameter file: a single `pk fit` JSON result (a batch result is rejected; pass one entry of its `results`), a CSV of fitted parameters, a Parameter/Value table, or `name = value` lines |
 | `--set` | `name=value`, repeatable | Override one parameter |
 | `--ca` | number | Ambient CO₂, µmol mol⁻¹ (default 420) |
 | `--absorptance` | number | Leaf absorptance applied to `Qamb` (default 0.85) |
@@ -106,8 +107,9 @@ pk concat <file...> [options]
 }
 ```
 
-`hint` is present when there's a specific fix to suggest, and `help` is
-present on usage errors. `usage` is `true` when the command line was wrong
+`hint` is present when there's a specific fix to suggest, and `help` (the
+command's usage line) is present on usage errors for a known command (not on
+`unknown_command`). `usage` is `true` when the command line was wrong
 and `false` when a file or its data was. `pk describe` lists these codes too,
 under `errors`.
 

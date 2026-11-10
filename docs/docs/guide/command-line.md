@@ -18,8 +18,9 @@ options. [Commands](../reference/commands.md) documents every option.
 `pk` reads:
 
 - **CSV files** with one header row of column names.
-- **`.xlsx` workbooks**, using the first sheet. For photosynthesis, the
-  LI-6800's `Measurements` sheet.
+- **`.xlsx` workbooks**, using the first sheet. LI-6800 `.xlsx` exports are
+  recognized by `pk fit photosynthesis` and `pk concat`, which read the
+  `Measurements` sheet and skip its header block and units row.
 - **LI-6800 native logs**, the files with no extension that the instrument
   writes. PhytKit finds the `[Data]` block and the column header itself.
 - **Standard input**, if you give `-` as the file name.
@@ -45,7 +46,7 @@ The options you'll use most with `pk fit`:
 | Option | Example | Effect |
 |---|---|---|
 | `--model` | `--model fvcbC4` | Model to fit (each tool has a default) |
-| `--fit` | `--fit Vcmax25,Jmax25` | Fit only these parameters |
+| `--fit` | `--fit Vcmax25,Jmax25` | Fit exactly these parameters (replaces the default set) |
 | `--fix` | `--fix gm,alphaG` | Hold these parameters fixed |
 | `--set` | `--set Vcmax25=80` | Starting value, or the fixed value of a fixed parameter |
 | `--max-iter` | `--max-iter 400` | Iteration limit (default 200) |
@@ -55,7 +56,9 @@ The options you'll use most with `pk fit`:
 ## Output and errors
 
 Every command prints **one JSON object** to standard output. It has
-`"ok": true` and the results, unless you asked for `--format csv`.
+`"ok": true` and the results, unless you asked for `--format csv`. The
+exception is `pk concat`, which prints the merged CSV unless you give `--out`
+or `--format json`.
 
 When something goes wrong, `pk` prints an error object and exits with code 1:
 
@@ -91,7 +94,8 @@ When something goes wrong, `pk` prints an error object and exits with code 1:
 - It never asks questions or waits for input.
 - `pk describe` and `pk describe <model>` say what each model takes, so a
   script doesn't need to read these docs.
-- Output is always JSON, or CSV when you ask for it.
+- Output is JSON, or CSV when you ask for it with `--format csv`. `pk concat`
+  prints CSV unless you give `--out` or `--format json`.
 - Errors have a stable `code`, and a `hint` naming the likely fix. Nothing is
   silently ignored: an unknown option, a stray argument or an out-of-range
   value stops the command before it runs.

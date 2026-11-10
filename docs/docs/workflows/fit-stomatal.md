@@ -26,5 +26,7 @@ pk fit stomatal examples/medlyn.csv --model medlyn --predicted
 ## From porometry
 
 Correct the LI-600 file, estimate A, and fit Medlyn to the result. The file
-then has `gsw_corrected`, `A_solved` and `VPDleaf`. See
+then has `gsw_corrected` and `A_solved`. Medlyn also needs VPD: this works
+only if your LI-600 export has a `VPDleaf` column (the sample file doesn't),
+because neither `pk li600 correct` nor `pk li600 estimate` adds one. See
 [Estimate A from porometry](estimate-assimilation.md).

@@ -7,7 +7,8 @@ import phytkit as pk
 ## Commands
 
 These run `pk` commands and return what `pk` would print: a `dict` for JSON
-output, or a `str` for `format="csv"`. Options are `pk`'s options as keyword
+output, or a `str` for CSV output (`format="csv"`, or `concat` without `out`
+or `format="json"`). Options are `pk`'s options as keyword
 arguments, with `_` in place of `-` (see
 [Scripting with Python](../guide/python.md#the-same-commands-as-pk)). They
 raise `PhytKitError` on failure.
@@ -44,12 +45,12 @@ pk.fit_arrays(model_name, x, y, *, fit_params=None, init=None, max_iter=None,
 |---|---|
 | `model_name` | A model from `pk.models()` |
 | `x` | Dict of input name → sequence of values; see [Models and parameters](models.md) for each model's inputs and units (temperature in Kelvin) |
-| `y` | Sequence of measured responses, the same length as each input |
-| `fit_params` | Parameters to optimize (default: those not fixed by default) |
-| `init` | Dict of starting values, or the values fixed parameters are held at |
+| `y` | Sequence of measured responses, the same length as each input. Every value in `x` and `y` must be finite |
+| `fit_params` | Exactly the parameters to optimize (default: those not fixed by default) |
+| `init` | Dict of starting values (within the bounds for parameters being fitted), or the values fixed parameters are held at |
 | `max_iter` | Iteration limit (default 200) |
-| `curves` | List of row-index lists, one per curve, for per-curve constraints |
-| `constraints` | Constraint keys to apply (default: all) |
+| `curves` | List of 0-based row-index lists, one per curve, for per-curve constraints |
+| `constraints` | Exactly the constraint keys to apply (default: those on by default) |
 | `constraint_weights` | Dict of constraint key → weight |
 
 Returns a dict:

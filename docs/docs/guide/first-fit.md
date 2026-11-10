@@ -1,7 +1,8 @@
 # Your first fit
 
 This page fits the sample A–Ci curves that come with PhytKit, then walks
-through the result. Run the commands from the `rust` folder.
+through the result. Run the commands from the top folder of the PhytKit source (the one with
+`Cargo.toml` and `examples/` in it).
 
 ## The data
 
@@ -10,8 +11,8 @@ and three leaf temperatures:
 
 ```text
 A,Ci,Qabs,Tleaf,CurveID
--0.0429,58.72,1500.0,20.0,1
-2.9734,97.72,1500.0,20.0,1
+1.8521,59.26,1500,20,1
+5.5849,97.87,1500,20,1
 ...
 ```
 
@@ -48,12 +49,12 @@ See [Photosynthesis models](../concepts/photosynthesis.md#mesophyll-conductance)
   "model": "fvcb",
   "n": 66,
   "mapping": { "A": "A", "Ci": "Ci", "Q": "Qabs", "T": "Tleaf" },
-  "r2": 0.97194,
-  "rmse": 2.186425,
-  "iterations": 45,
+  "r2": 0.998906,
+  "rmse": 0.431796,
+  "iterations": 63,
   "converged": true,
   "fitted": ["Vcmax25", "Jmax25", "TPU25", "Rd25", "alpha", "theta", "..."],
-  "params": { "Vcmax25": 97.804869, "Jmax25": 196.368808, "...": "..." },
+  "params": { "Vcmax25": 95.231833, "Jmax25": 181.472849, "...": "..." },
   "warnings": [
     "Using A=\"A\", Ci=\"Ci\", light=\"Qabs\", T=\"Tleaf\".",
     "Treated \"Tleaf\" as °C and converted 66 value(s) to Kelvin.",

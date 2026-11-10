@@ -34,7 +34,7 @@ cargo test --release
 ./target/release/pk li600 correct porometer.csv --sidedness 1.5
 ```
 
-`cargo install --path crates/cli` puts `pk` on your PATH. Output is JSON (or CSV with `--format csv`). Errors print `{"ok": false, "error": {"code", "message", "hint", ...}}` and exit with code 1; unknown options and out-of-range values are errors, never ignored.
+`cargo install --path crates/cli` puts `pk` on your PATH. Output is JSON (or CSV with `--format csv`); `pk concat` prints the merged CSV unless `--out` or `--format json` is given. Errors print `{"ok": false, "error": {"code", "message", "hint", ...}}` and exit with code 1; unknown options and out-of-range values are errors, never ignored.
 
 ## Python
 
@@ -81,7 +81,7 @@ cd docs && ../.docs-venv/bin/mkdocs serve      # then open http://127.0.0.1:8000
 
 ## Releasing
 
-Bump `workspace.package.version` in `Cargo.toml`, commit, and push a matching tag (`git tag v0.2.0 && git push origin v0.2.0`). The `Release` workflow builds and tests wheels for Linux (x86_64, aarch64), macOS (arm64, x86_64) and Windows, publishes them to PyPI, and creates a GitHub release.
+Bump `workspace.package.version` in `Cargo.toml`, commit, and push a matching tag (`git tag v0.2.0 && git push origin v0.2.0`). The `Release` workflow builds wheels for Linux (x86_64, aarch64), macOS (arm64, x86_64) and Windows, tests them (except macOS x86_64, which is built but not tested), publishes them and an sdist to PyPI, and creates a GitHub release.
 
 ## Credits
 

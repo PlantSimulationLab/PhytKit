@@ -84,8 +84,13 @@ pk.predict("fvcb", {"Vcmax25": 90, "Jmax25": 170}, {"Ci": [200, 400, 800], "Q": 
 cores. It returns the results in the same order:
 
 ```python
-results = pk.fit_many("fvcb", [(x1, y1), (x2, y2), (x3, y3)], init={"gm": 1e6}, threads=8)
+results = pk.fit_many("fvcb", [(x1, y1), (x2, y2), (x3, y3)], threads=8)
 ```
+
+`init` sets starting values for fitted parameters, which must lie within
+their bounds (a value outside is an error), and the values that fixed
+parameters are held at, which may be anything. To hold a parameter such as
+`gm`, leave it out of `fit_params`, which lists exactly the parameters to fit.
 
 See [Fit many curves at once](../workflows/batch-fitting.md).
 
@@ -107,7 +112,10 @@ except pk.PhytKitError as e:
 Keyword arguments are checked like `pk`'s options, so a misspelled one
 (`sidednes=2`) raises `unknown_option` rather than being ignored.
 `fit_arrays`, `fit_many` and `predict` check their inputs the same way:
-unknown parameter or constraint names, a missing input column, and columns
-of different lengths are all errors.
+unknown parameter or constraint names, a missing input column, and input
+columns of different lengths are all errors. `fit_arrays` and `fit_many` also
+reject a column whose length differs from `y`, any NaN or infinite value in
+the data, and a `curves` row index past the end of `y`. Drop incomplete rows
+before fitting.
 
 The full list of functions and arguments is in [Python API](../reference/python-api.md).

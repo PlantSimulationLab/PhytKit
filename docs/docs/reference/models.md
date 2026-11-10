@@ -4,8 +4,9 @@ Every built-in model, with its inputs, parameters and default bounds. This page 
 generated from `pk describe` by `docs/gen_models.py`; `pk describe <model>` prints the
 same information as JSON.
 
-**Fixed by default** parameters are held at their default unless you free them with
-`--fit` (or `fit_params` in Python). Bounds are hard limits the fitter never crosses.
+**Fixed by default** parameters are held at their default. To fit one, list it with `--fit`
+(or `fit_params` in Python), but `--fit` replaces the whole set of fitted parameters, so also
+list every other parameter you want fitted. Bounds are hard limits the fitter never crosses.
 
 | Model | Tool | Name in the tool |
 |---|---|---|
@@ -28,7 +29,7 @@ same information as JSON.
 **Empirical** — `pk fit photosynthesis <file> --model empiricalA`
 
 \[
-A = A_{max}(T)\,\frac{Q}{Q + K_q(T)}\cdot\frac{C_i - \Gamma^*(T)}{C_i + K_{co}(T)} - R_d(T)
+A = A_{max}(T)\,\frac{Q}{Q + K_q(T)}\cdot\frac{C_c - \Gamma^*(T)}{C_c + K_{co}(T)} - R_d(T),\quad C_c = C_i - A/g_m\ (C_c = C_i \text{ when } g_m \ge 99)
 \]
 
 **Inputs:** `Ci` (intercellular CO₂, µmol mol⁻¹), `Q` (absorbed light (PPFD), µmol m⁻² s⁻¹), `T` (leaf temperature, K)
@@ -65,7 +66,7 @@ A = \left(1-\tfrac{\Gamma^*}{C_c}\right)\min\{\,w_c,\ w_j,\ w_p\,\} - R_d,\quad 
 | `Jmax25` | 200 | 5 | 700 |  | max electron transport at 25C |
 | `TPU25` | 25 | 1 | 100 |  | triose-phosphate utilization at 25C |
 | `Rd25` | 1.5 | 0 | 15 |  | day respiration at 25C |
-| `gm` | 0.25 | 0.01 | 0.5 |  | mesophyll conductance (Cc = Ci − A/gm) |
+| `gm` | 0.25 | 0.01 | 5 |  | mesophyll conductance (Cc = Ci − A/gm) |
 | `alpha` | 0.5 | 0.1 | 0.9 |  | quantum yield of electron transport |
 | `theta` | 0.7 | 0.1 | 0.99 |  | curvature of J(Q) |
 | `alphaG` | 0 | 0 | 1 |  | glycolate carbon returned (TPU) |
@@ -87,18 +88,18 @@ A = \left(1-\tfrac{\Gamma^*}{C_c}\right)\min\{\,w_c,\ w_j,\ w_p\,\} - R_d,\quad 
 | `Ko_dHa` | 36.38 | 1 | 200 | yes |  |
 | `O` | 213.5 | 100 | 300 | yes | chloroplastic O2 (mmol/mol) |
 
-**Soft constraints** (penalties added to the fit; turn one off with `--no-constraint <key>`, all with `--constraints none`, reweight with `--weight <key>=<w>`):
+**Soft constraints** (penalties added to the fit; turn one off with `--no-constraint <key>`, all with `--constraints none`, turn on one that is off by default with `--constraint <key>`, reweight with `--weight <key>=<w>`):
 
-| Key | Constraint | Default weight | Per curve | What it does |
-|---|---|---|---|---|
-| `ap_nonneg` | Ap ≥ 0 | 1 |  | TPU-limited rate non-negative at every point |
-| `aj_le_ac_mid` | Aj ≤ Ac (mid Ci) | 0.3 | yes | Light-limited ≤ Rubisco-limited at Ci 500–700 |
-| `rubisco_region` | Rubisco region exists | 1 | yes | A low-Ci Rubisco-limited stretch must be present |
-| `ap_above_cross` | Ap above Ac/Aj crossing | 1 | yes | TPU not limiting at the Ac–Aj transition |
-| `ap_limits_high` | Ap limits at high Ci | 1 | yes | TPU is the limiter at the highest-Ci point |
-| `vcmax_window` | Vcmax25 ∈ [20, 130] | 0.05 |  | Soft prior keeping Vcmax25 in a typical range (PhoTorch) |
-| `alphag_zero` | αG → 0 | 2 |  | Pull the glycolate-return fraction toward 0 (PhoTorch) |
-| `vj_ratio` | Jmax:Vcmax ≈ 1.6–2.0 | 0.1 |  | Soft prior on the Jmax25:Vcmax25 ratio (single-curve analog of PhoTorch's correlation term) |
+| Key | Constraint | On by default | Default weight | Per curve | What it does |
+|---|---|---|---|---|---|
+| `ap_nonneg` | Ap ≥ 0 | yes | 1 |  | TPU-limited rate non-negative at every point |
+| `aj_le_ac_mid` | Aj ≤ Ac (mid Ci) | yes | 0.3 | yes | Light-limited ≤ Rubisco-limited at Ci 500–700 |
+| `rubisco_region` | Rubisco region exists | yes | 1 | yes | A low-Ci Rubisco-limited stretch must be present |
+| `ap_above_cross` | Ap above Ac/Aj crossing | yes | 1 | yes | TPU not limiting at the Ac–Aj transition |
+| `ap_limits_high` | Ap limits at high Ci | no | 1 | yes | TPU is the limiter at the highest-Ci point |
+| `vcmax_window` | Vcmax25 ∈ [20, 130] | no | 0.05 |  | Soft prior keeping Vcmax25 in a typical range (PhoTorch) |
+| `alphag_zero` | αG → 0 | yes | 2 |  | Pull the glycolate-return fraction toward 0 (PhoTorch) |
+| `vj_ratio` | Jmax:Vcmax ≈ 1.6–2.0 | yes | 0.1 |  | Soft prior on the Jmax25:Vcmax25 ratio (single-curve analog of PhoTorch's correlation term) |
 
 ## fvcbC4
 
@@ -139,15 +140,15 @@ A = \min\{A_c,\ A_j\},\quad V_p = \min\!\left(\tfrac{C_m V_{pmax}}{C_m+K_p},\ V_
 | `GammaStar_dHa` | 31.1 | 1 | 200 | yes |  |
 | `Om25` | 210000 | 100000 | 300000 | yes | bundle-sheath O2 partial pressure (μbar) |
 
-**Soft constraints** (penalties added to the fit; turn one off with `--no-constraint <key>`, all with `--constraints none`, reweight with `--weight <key>=<w>`):
+**Soft constraints** (penalties added to the fit; turn one off with `--no-constraint <key>`, all with `--constraints none`, turn on one that is off by default with `--constraint <key>`, reweight with `--weight <key>=<w>`):
 
-| Key | Constraint | Default weight | Per curve | What it does |
-|---|---|---|---|---|
-| `vpmax_gt_vpr` | Vpmax > Vpr | 1 |  | PEP kinetic curve must reach its regeneration cap |
-| `vp_breakpoint` | Vpr breakpoint in Ci range | 0.02 | yes | Keep the Vpmax→Vpr transition inside the data (Vpmax/Vpr identifiability) |
-| `acaj_regime` | Ac/Aj regime at high Ci | 0.1 | yes | High light → Ac binds; low light → Aj binds, at saturating Ci |
-| `rd_tether` | Rd ≈ 0.02·Vcmax | 10 |  | Soft tether of day respiration to Vcmax (poorly identified in C4) |
-| `rate_windows` | Rate windows | 0.1 |  | Soft priors: Vpmax∈[20,400], Vcmax∈[5,200], Jmax∈[50,600] |
+| Key | Constraint | On by default | Default weight | Per curve | What it does |
+|---|---|---|---|---|---|
+| `vpmax_gt_vpr` | Vpmax > Vpr | yes | 1 |  | PEP kinetic curve must reach its regeneration cap |
+| `vp_breakpoint` | Vpr breakpoint in Ci range | yes | 0.02 | yes | Keep the Vpmax→Vpr transition inside the data (Vpmax/Vpr identifiability) |
+| `acaj_regime` | Ac/Aj regime at high Ci | yes | 0.1 | yes | High light → Ac binds; low light → Aj binds, at saturating Ci |
+| `rd_tether` | Rd ≈ 0.02·Vcmax | yes | 0.01 |  | Weak prior pulling day respiration toward 0.02·Vcmax where the data leave Rd undetermined |
+| `rate_windows` | Rate windows | yes | 0.1 |  | Soft priors: Vpmax∈[20,400], Vcmax∈[5,200], Jmax∈[50,600] |
 
 ## vulnerability
 
@@ -282,7 +283,7 @@ s = \dfrac{4\lambda}{\pi}\dfrac{2-D}{1-D}\dfrac{1-\delta}{r_{max}}\dfrac{1-\left
 g_s = \frac{E_m\,(Q + i_0)}{k + b\,Q + (Q + i_0)\,D_s}
 \]
 
-**Inputs:** `Q` (absorbed light (PPFD), µmol m⁻² s⁻¹), `Ds` (leaf-to-air vapour pressure deficit as a mole fraction, mmol mol⁻¹)
+**Inputs:** `Q` (light (PPFD), µmol m⁻² s⁻¹; `pk fit stomatal` prefers `Qin` (incident) over `Qabs`, see Input files), `Ds` (leaf-to-air vapour pressure deficit as a mole fraction, mmol mol⁻¹)
 
 | Parameter | Default | Lower bound | Upper bound | Fixed by default | Description |
 |---|---|---|---|---|---|

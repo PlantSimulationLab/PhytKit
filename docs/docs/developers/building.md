@@ -1,6 +1,6 @@
 # Building and testing
 
-Run these from the `rust` folder.
+Run these from the repository root.
 
 ## Build
 
@@ -13,7 +13,8 @@ cargo clippy --release                 # lints
 The Python crate is a Python extension and can only be linked by maturin:
 
 ```bash
-VIRTUAL_ENV=$PWD/.venv .venv/bin/maturin develop --release -m crates/py/Cargo.toml
+python -m venv .venv && .venv/bin/pip install maturin pytest
+VIRTUAL_ENV=$PWD/.venv .venv/bin/maturin develop --release -m crates/py/Cargo.toml   # prefix with `env -u CONDA_PREFIX` if Conda is active
 ```
 
 ## Test
@@ -26,8 +27,9 @@ cargo test --release                   # unit tests and model reference values
 The Python tests compare `phytkit.run` with the `pk` binary on the example
 data, so build `pk` first.
 
-The model tests check every model's predictions, derivatives and fits
-against values stored in `crates/core/tests/data/model_reference.json`. After
+The model tests check every model except `fvcb` (predictions, derivatives
+where the model has them, penalties, derived values and fits) against values
+stored in `crates/core/tests/data/model_reference.json`. After
 changing a model on purpose, rewrite the stored values from the current code and
 review the difference:
 
@@ -63,13 +65,13 @@ GitHub Actions runs three workflows from `.github/workflows/`:
 
 - **`ci.yml`**, on every push to `main` and every pull request: `cargo fmt --check`, clippy (warnings are errors),
   `cargo test --release` on Linux, macOS and Windows, a `cargo check` on Rust 1.88, the Python
-  tests against a freshly built wheel on Python 3.9 to 3.13, and the docs checks
+  tests against a freshly built wheel (Python 3.9 and 3.13 on Linux, 3.12 on macOS and Windows), and the docs checks
   (`docs/check_examples.sh`, an up-to-date `reference/models.md`, and `mkdocs build --strict`).
 - **`docs.yml`**, on pushes to `main` that change `docs/`: builds this site and publishes it to
   GitHub Pages.
 - **`release.yml`**, on a `v*` tag: builds abi3 wheels (Linux x86_64 and aarch64, macOS arm64
-  and x86_64, Windows x86_64) and an sdist, installs and tests each wheel on Python 3.9 and
-  3.13, publishes to PyPI with Trusted Publishing, and creates a GitHub release. Run it by hand
+  and x86_64, Windows x86_64) and an sdist, installs and tests each wheel except macOS x86_64 on
+  Python 3.9 and 3.13, publishes to PyPI with Trusted Publishing, and creates a GitHub release. Run it by hand
   from the Actions tab for a dry run that builds and tests without publishing.
 
 To release, bump `workspace.package.version` in the root `Cargo.toml` (the Python package takes

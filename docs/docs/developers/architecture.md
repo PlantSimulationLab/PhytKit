@@ -1,7 +1,7 @@
 # Architecture
 
 ```text
-rust/
+PhytKit/       (the repository root)
 ├── crates/
 │   ├── core/   phytkit-core: models, fitter, parsers, LI-600 tools
 │   ├── cli/    phytkit-cli: the pk command and its command layer
@@ -47,7 +47,9 @@ The Python bindings call `run` too, so the CLI and Python can't drift apart.
 | `fit`, `tools` | `pk fit`, and the table of tools, models, parsers and seeds |
 | `li600` | `pk li600 correct` and `pk li600 estimate` |
 | `concat` | `pk concat` |
-| `args`, `io` | Argument parsing and file loading |
+| `options` | The command table, argument parsing and validation, help text |
+| `args` | Parsed-argument accessors, `CliError` and `ERROR_CODES` |
+| `io` | File loading and `--out` writing |
 
 ## `phytkit` (Python)
 
@@ -59,7 +61,8 @@ lock and fits datasets in parallel with Rayon.
 ## Conventions
 
 - **Output** is built with `serde_json`. Non-finite numbers are written as
-  `null`, and fitted values are rounded to six decimals.
+  `null`, and fitted values are rounded to six decimals, or six significant
+  figures when that keeps more digits (`numbers::round_fit`).
 - **NaN propagates** through `numbers::max` and `numbers::min` (unlike
   `f64::max`), so a parameter set outside a model's valid region gives a NaN
   residual that the fitter rejects, rather than a finite but wrong value.

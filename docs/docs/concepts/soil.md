@@ -6,8 +6,9 @@ potential **ψ**. All five models share two parameters:
 - **θr:** the residual water content.
 - **θs:** the saturated water content.
 
-PhytKit starts them at the driest and wettest measured θ. ψ is in MPa unless
-you say otherwise with `--units` (`kPa`, `bar`, `m` or `cm` of water).
+PhytKit starts them at the driest and wettest measured θ. ψ is in the units
+given with `--units` (`MPa`, `kPa`, `hPa`, `bar`, `m` or `cm` of water);
+without it, in the unit the column's name states, or else MPa.
 Suction given as positive is treated as negative ψ, and water content given as
 a percentage is converted to a fraction.
 
@@ -21,7 +22,8 @@ a percentage is converted to a fraction.
 
 The Raats superclass contains van Genuchten, Brooks–Corey and others as
 special cases. The fractal model has a fractal dimension `D` between 1 and 2,
-a maximum pore radius `r_max` in µm, and an adsorbed film fraction `δ`.
+a maximum pore radius `r_max` in µm, and a relative adsorbed-film thickness `δ` (the film fills
+\(1 - (1 - \delta)^2\) of the pore space).
 
 Some models also carry conductivity parameters that retention data alone
 can't determine. Examples are `α2` and `n2` in the modified van Genuchten

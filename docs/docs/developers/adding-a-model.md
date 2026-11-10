@@ -16,10 +16,14 @@ impl MyModel {
             params: vec![
                 param("a", 1.0, 0.0, 10.0).describe("scale"),
                 param("b", 0.5, 0.0, 5.0),
-                param("c", 0.0, -1.0, 1.0).fixed(),   // held fixed unless freed with --fit
+                param("c", 0.0, -1.0, 1.0).fixed(),   // fixed by default; --fit lists exactly what to fit
             ],
         }
     }
+}
+
+impl Default for MyModel {
+    fn default() -> Self { Self::new() }
 }
 
 impl Model for MyModel {
@@ -38,8 +42,8 @@ Optional methods:
 
 | Method | Use it for |
 |---|---|
-| `jacobian` and `has_jacobian` | Exact derivatives, instead of finite differences |
-| `penalties` and `has_penalties`, `constraints` | Soft constraints |
+| `jacobian` and `has_jacobian` | Exact derivatives, instead of finite differences (not used when the model also has penalties) |
+| `penalties` and `has_penalties`, `constraints` | Soft constraints (each `ConstraintSpec` sets `default_on`; when the caller doesn't choose, `penalties` should apply only those) |
 | `derived` | Values computed from the parameters, reported with each fit (like `psi_tlp`) |
 | `latex` | The equation, shown by `pk describe` and in these docs |
 
@@ -59,6 +63,17 @@ To fit it from files with `pk fit`, add a `ToolModel` to a tool in
 - an optional seed function that sets starting values from the data.
 
 ## 4. Test and document it
+
+Registering a model makes `cargo test --release` fail until the model
+reference test knows about it:
+
+- add the model's name to the expected list in
+  `crates/core/tests/model_reference.rs`;
+- add an entry for it (inputs, parameter sets, fits) to
+  `crates/core/tests/data/model_reference.json`, then run
+  `UPDATE_MODEL_REFERENCE=1 cargo test --release --test model_reference` to
+  fill in the stored values. The update only rewrites entries that already
+  exist; it doesn't create one.
 
 Add tests in the model's file, run `python3 docs/gen_models.py` to add it to
 [Models and parameters](../reference/models.md), and describe it in

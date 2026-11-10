@@ -2,7 +2,7 @@
 
 Step-by-step recipes for common tasks. Each one runs on the sample files in
 `examples/`, so you can try it before using your own data. Run the commands
-from the `rust` folder.
+from the repository root (the folder that contains `examples/`).
 
 **Photosynthesis**
 

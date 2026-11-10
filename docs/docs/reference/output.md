@@ -18,10 +18,10 @@ are written as `null`.
 | `tool`, `model` | What was fitted |
 | `n` | Rows fitted |
 | `mapping` | File column used for each input |
-| `r2`, `rmse` | Fit quality on the data (6 decimals) |
+| `r2`, `rmse` | Fit quality on the data (6 decimals, or 6 significant figures for small values) |
 | `iterations`, `converged` | How the fit ended |
 | `fitted` | Optimized parameter names |
-| `params` | Every parameter's value (6 decimals) |
+| `params` | Every parameter's value (6 decimals, or 6 significant figures for small values) |
 | `derived` | Values computed from the parameters, such as `psi_tlp` (pressure–volume only) |
 | `rescale` | Rescale details, or `null`; see [Rescale curves](../workflows/rescale-to-survey.md) |
 | `warnings` | Columns used, conversions, dropped rows |
@@ -30,7 +30,8 @@ are written as `null`.
 
 ### Batch fits
 
-With several files or `--group-by`:
+With more than one file or `--group-by` group (one file, or a `--group-by`
+that finds a single group, gives the single-fit object above):
 
 | Field | Meaning |
 |---|---|
@@ -45,9 +46,11 @@ With several files or `--group-by`:
 
 `--format csv` prints one row per fit. The columns are:
 
-- `file`, `n_points`, `r2`, `rmse`, `iterations`, `converged`, `elapsed_ms`
-  and `rescale_factor`
-- one column per model parameter
+- `file`, then `model` when the files were fitted with more than one model,
+  then `n_points`, `r2`, `rmse`, `iterations`, `converged`, `elapsed_ms` and
+  `rescale_factor`
+- one column per model parameter, covering every model in the batch (cells for
+  another model's parameters are empty)
 - one column per derived value
 - `error`, filled in for files that failed
 
@@ -102,7 +105,7 @@ With `--out` or `--format json`:
 | Field | Meaning |
 |---|---|
 | `files` | Each input's `name` and `converted` |
-| `curves` | Distinct CurveIDs in the result |
+| `curves` | Number of distinct CurveIDs in the result |
 | `namespaced` | Whether CurveIDs were prefixed with file labels to keep them apart |
 | `warnings` | For example, mixed `Qabs`/`Q` columns |
 | `out` | The output file, or `null` |

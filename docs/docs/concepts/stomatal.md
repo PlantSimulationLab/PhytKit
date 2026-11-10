@@ -24,7 +24,9 @@ If your file has VPD in kPa, PhytKit converts it with
 ## Medlyn et al. (2011)
 
 `--model medlyn`. The optimal stomatal model: the conductance that maximizes
-carbon gain per unit water lost.
+carbon gain minus the cost of the water lost (\(A - \lambda E\), with a
+constant marginal water cost \(\lambda\)), i.e. the most carbon for a given
+amount of water.
 
 \[
 g_s = g_{s0} + 1.6\left(1 + \frac{g_1}{\sqrt{D}}\right)\frac{A}{C_s}
@@ -40,7 +42,9 @@ because the model diverges as D approaches zero.
 The LI-600 doesn't measure CO₂, so a file without a CO₂ column uses
 Cs = 420 µmol mol⁻¹. That's the same ambient CO₂ the
 [A estimate](li600.md#estimating-a-from-conductance) assumes, so you can fit
-Medlyn to the output of `pk li600 estimate`, which writes `A_solved`.
+Medlyn to the output of `pk li600 estimate`, which writes `A_solved`. The file
+also needs a VPD column (such as the LI-600's `VPDleaf`), which
+`pk li600 estimate` doesn't add; the sample `examples/li600.csv` has none.
 
 ## Units
 

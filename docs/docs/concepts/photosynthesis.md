@@ -29,17 +29,21 @@ A = \left(1 - \frac{\Gamma^*}{C_c}\right) \min\{w_c,\ w_j,\ w_p\} - R_d
 | \(w_j\) | RuBP regeneration (electron transport) | \(\dfrac{J\,C_c}{4C_c + 8\Gamma^*}\) |
 | \(w_p\) | Triose-phosphate utilization (TPU) | \(\dfrac{3\,TPU\,C_c}{C_c - (1 + 3\alpha_G)\Gamma^*}\) |
 
-The minimum is slightly smoothed, so the fitter's derivatives stay continuous
-where the limitation changes. The smoothing is a fixed internal constant, not
-a parameter.
+The minimum is smoothed, so the fitter's derivatives stay continuous where
+the limitation changes: it is a hyperbolic minimum with curvature 0.999, the
+co-limitation form of Collatz et al. (1991). Where two rates are equal, A is
+about 3% below them; away from the transitions it equals the smaller rate.
+The curvature is a fixed internal constant, not a parameter.
 
 **Light.** Electron transport \(J\) follows a non-rectangular hyperbola in
 absorbed light, with quantum yield `alpha` and curvature `theta`.
 
 **Temperature.** `Vcmax`, `Jmax` and `TPU` follow a peaked Arrhenius response.
 Each has a value at 25 °C (`Vcmax25`), an activation energy (`_dHa`), a
-deactivation energy (`_dHd`) and an optimum temperature (`_Topt`, in Kelvin;
-values below 200 are read as °C). Γ*, Kc, Ko and Rd follow a plain Arrhenius
+deactivation energy (`_dHd`) and an optimum temperature (`_Topt`, in Kelvin).
+Give `_Topt` values in Kelvin. The model reads a value below 200 as °C, but
+that only works when the parameter is held fixed: a free starting value below
+200 is outside the 288–333 K bounds and is rejected. Γ*, Kc, Ko and Rd follow a plain Arrhenius
 response.
 
 The formulation matches PhoTorch. Rubisco kinetic constants (`GammaS25`,
@@ -54,7 +58,11 @@ uses the measured A to set
 C_c = C_i - A / g_m
 \]
 
-`gm` is a fitted parameter by default (bounds 0.01–0.5 mol m⁻² s⁻¹ bar⁻¹).
+The reported `predicted` values, `rmse` and `r2` don't use the measured A:
+they come from the model's own solution of A and \(C_c\) together, exactly as
+`predict` computes them.
+
+`gm` is a fitted parameter by default (bounds 0.01–5 mol m⁻² s⁻¹ bar⁻¹).
 Mesophyll conductance is hard to estimate from gas exchange alone, so many
 analyses fit an **apparent** model with \(C_c = C_i\) instead. To do that, fix
 gm at a very large value:
@@ -75,8 +83,8 @@ clearly show every limitation.
 | `aj_le_ac_mid` | Light limitation at or below Rubisco limitation at Ci 500–700 |
 | `rubisco_region` | A Rubisco-limited stretch at low Ci |
 | `ap_above_cross` | No TPU limitation where Rubisco and light limitation cross |
-| `ap_limits_high` | TPU limitation at the highest Ci |
-| `vcmax_window` | `Vcmax25` between 20 and 130 |
+| `ap_limits_high` | TPU limitation at the highest Ci (off by default) |
+| `vcmax_window` | `Vcmax25` between 20 and 130 (off by default) |
 | `alphag_zero` | `alphaG` near zero |
 | `vj_ratio` | `Jmax25`/`Vcmax25` between 1.6 and 2.0 |
 
@@ -86,6 +94,11 @@ to all rows together otherwise. Turn one off with `--no-constraint <key>`,
 all of them with `--constraints none`, or change a weight with
 `--weight <key>=<w>`.
 
+`ap_limits_high` and `vcmax_window` are off by default: on curves without a
+TPU plateau, `ap_limits_high` forces a TPU limit anyway, and `vcmax_window`
+pulls `Vcmax25` of high-capacity leaves down toward 130. Turn one on with
+`--constraint <key>` (in Python, list it in `constraints`).
+
 ## von Caemmerer C4
 
 The C4 model follows von Caemmerer (2021), as implemented in PhoTorch and
@@ -94,16 +107,19 @@ Helios. Defaults are for *Setaria viridis*.
 - **Mesophyll CO₂:** \(C_m = C_i - A/g_m\).
 - **PEP carboxylation:** \(V_p = \min\big(C_m V_{pmax}/(C_m + K_p),\ V_{pr}\big)\).
 - **Enzyme-limited rate \(A_c\)** and **electron-transport-limited rate \(A_j\):** each the lower root of a quadratic.
-- **Assimilation:** \(A = \min(A_c, A_j)\). C4 photosynthesis has no TPU limitation.
+- **Assimilation:** \(A = \min(A_c, A_j)\). The model has no TPU limitation.
 
 ## Empirical model
 
 \[
-A = A_{max}(T)\,\frac{Q}{Q + K_q(T)}\cdot\frac{C_i - \Gamma^*(T)}{C_i + K_{co}(T)} - R_d(T)
+A = A_{max}(T)\,\frac{Q}{Q + K_q(T)}\cdot\frac{C_c - \Gamma^*(T)}{C_c + K_{co}(T)} - R_d(T),
+\qquad C_c = C_i - A/g_m
 \]
 
 A light-saturation term times a CO₂-saturation term, with temperature
-responses on each coefficient. It has many parameters for what A–Ci data alone
+responses on each coefficient. The CO₂ term uses the chloroplast CO₂ \(C_c\),
+solved together with A through the mesophyll conductance `gm`, which is
+fitted by default (0.01–99). With `gm` at 99 or more, \(C_c = C_i\). It has many parameters for what A–Ci data alone
 can determine, so fits often reach equally good results with different
 parameter values. See
 [How fitting works](fitting.md#parameters-the-data-cant-pin-down).

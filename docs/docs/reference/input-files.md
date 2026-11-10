@@ -1,7 +1,13 @@
 # Input files
 
-Every tool reads CSV files with one header row, `.xlsx` workbooks (first
-sheet), LI-6800 native logs, and standard input (`-`). Columns are found by
+Every tool reads CSV files with one header row, LI-6800 native logs, and
+standard input (`-`). The delimiter (comma, tab, semicolon or pipe) is
+detected from the first rows; a trailing delimiter at the end of each row is
+fine. In semicolon files, decimal commas (`1,5`) are read as decimal points,
+and in tab or pipe files too when no value uses a decimal point. The stomatal, hydraulics, soil and LI-600 tools read the
+first sheet of an `.xlsx` workbook. `pk fit photosynthesis` and `pk concat`
+read an LI-6800 `.xlsx` export as described below, and any other workbook as
+its first sheet with one header row. Columns are found by
 name, so files from different sources work without renaming. Each tool reports
 the columns it used, and any conversion it made, in `warnings`.
 
@@ -20,8 +26,10 @@ temperature are dropped and counted in `warnings`.
 
 LI-6800 files are recognized automatically:
 
-- **`.xlsx` exports:** PhytKit reads the `Measurements` sheet and finds the row
-  holding both `A` and `Ci`.
+- **`.xlsx` exports:** PhytKit reads the `Measurements` sheet (or the first
+  sheet) and finds the row holding cells exactly `A` and `Ci`. A workbook is
+  treated as an export when that row isn't the sheet's first row; the data
+  rows are those whose first cell is a number.
 - **Native logs:** it reads the `[Data]` block.
 
 In both, it skips the category and units rows and keeps the data rows.
@@ -46,14 +54,14 @@ directly: PhytKit finds the column-name row and skips the units row.
 
 | Input | Column names tried | Notes |
 |---|---|---|
-| Water potential | `P`, `Psi (MPa)`, `Psi(MPa)`, `WP (MPa)`, `WP(MPa)`, `Psi_MPa`, `Psi`, `psi`, `WP`, `water_potential`, `potential`, `MPa`, `Pressure`, `P_MPa`, `Pa`, then `Psi (bar)`, `Psi(bar)`, `WP (bar)`, `Psi_bar` | MPa. Columns named in bar are converted. Positive tension is made negative. |
+| Water potential | `P`, `Psi (MPa)`, `Psi(MPa)`, `WP (MPa)`, `WP(MPa)`, `Psi_MPa`, `ψ_MPa`, `Psi`, `psi`, `ψ`, `WP`, `water_potential`, `potential`, `MPa`, `Pressure`, `P_MPa`, `Pa`, then `Psi (bar)`, `Psi(bar)`, `WP (bar)`, `Psi_bar`, `ψ_bar` | MPa. Columns named in bar are converted. Positive tension is made negative. |
 | PLC | `PLC`, `plc`, `loss`, `percent_loss`, `PLC_pct`, `PLCpercent`, `pld` | Percent, or a 0–1 fraction |
 | Conductance | `K`, `k`, `Kleaf`, `Kstem`, `Kroot`, `Kplant`, `Kmax`, ... with a space, `_` or `-` separator; `conductance`, `conductivity` | Used when there's no PLC column |
 | Relative water content | `RWC`, `rwc`, `RWC (%)`, `relative_water_content`, `water_content`, `RWC_pct`, `w` | Fraction, or a percentage (above 1.5) |
 
 Names are matched loosely, ignoring case, spaces, underscores and unit
 punctuation. So `water potential`, `water_potential` and `WaterPotential` are
-the same.
+the same. Non-ASCII letters count as letters, so `θ` and `σ` are different names.
 
 ## Soil water retention
 
@@ -65,6 +73,7 @@ the same.
 ## LI-600 files
 
 `pk li600 correct` needs `gsw`, `Tref`, `Tleaf`, `rh_r`, `rh_s`, `flow`,
-`P_atm` and `E_apparent`. `pk li600 estimate` needs `gsw` (or
-`gsw_corrected`), `Qamb` and `Tleaf`, and keeps `ETR` if present. Both find the
+`P_atm` and `E_apparent`. `pk li600 estimate` needs `gsw`, `Qamb` and
+`Tleaf`. It uses `gsw_corrected` in place of `gsw` when that column is present
+(`gsw` is still required), and keeps `ETR` if present. Both find the
 column-name row within the first five rows and skip a units row below it.

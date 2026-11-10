@@ -70,7 +70,8 @@ pip install phytkit
 
 - :material-console: **Built for scripts and agents**
 
-    Every command prints one JSON object, errors are structured, and
+    Every command prints one JSON object by default (`pk concat` prints the
+    merged CSV unless asked for JSON), errors are structured, and
     `pk describe` lists every model, parameter, bound and constraint, so
     scripts and coding agents can discover what to pass.
 

@@ -41,7 +41,7 @@ Output is a JSON envelope: `{"ok": true, "command": ..., ...}` on success. On fa
 status 1; Python raises `phytkit.PhytKitError` with the same `.code`, `.hint` and `.usage`. Error
 codes are stable and listed in `docs/docs/reference/commands.md`. Read `hint`: it often names the
 fix (`Did you mean lightResponse?`). `NaN` and infinite values are written as `null`, and fitted
-values are rounded to six decimals.
+values are rounded to six decimals (six significant figures for small values).
 
 ### Python
 
@@ -53,7 +53,7 @@ pk.fit("photosynthesis", "leaf.csv", model="fvcb", fix=["gm"], max_iter=400)
 pk.fit_arrays("fvcb", {"Ci": ci, "Q": q, "T": t_kelvin}, a)           # data already in memory
 pk.fit_many("fvcb", [(x1, y1), (x2, y2)], threads=8)                  # many independent fits
 pk.predict("fvcb", {"Vcmax25": 90}, {"Ci": ci, "Q": q, "T": t_kelvin})
-pk.run(["fit", "soil", "soil.csv", "--group-by", "sample"])           # any pk command line
+pk.run(["fit", "soil", "examples/soil.csv", "--group-by", "sample", "--units", "kPa"])  # any pk command line
 ```
 
 Keyword arguments become `pk` flags (`max_iter=400` is `--max-iter 400`; a list repeats the flag;
@@ -64,10 +64,15 @@ a dict becomes repeated `--flag key=value`).
 - **Temperatures in `fit_arrays`, `fit_many` and `predict` are in Kelvin.** The file commands
   convert any temperature below 200 from °C to Kelvin and say so in `warnings`; the array functions
   take your numbers as they are.
-- **Column names are matched loosely** (ignoring case, spaces, underscores and unit suffixes), and
-  `Qabs` is preferred over `Q` when both are present. Check `mapping` and `warnings` to see which
-  columns were actually used.
-- **Soil water potential is in MPa** unless `--units` says otherwise.
+- **Column names are matched against lists of accepted names**, not loosely. Photosynthesis
+  columns must be named `A`, `Ci`, `Qabs` or `Q`, and `Tleaf` or `T` (case is ignored; `Qabs` is
+  preferred over `Q` when both are present). The stomatal, hydraulics and soil readers also ignore
+  spaces and punctuation and accept many aliases. Unit suffixes are not stripped in general. See
+  the Input files reference, and check `mapping` and `warnings` to see which columns were used.
+- **Soil water potential units** come from `--units`, else from the ψ column's name (`Psi (bar)`,
+  `kPa`, ...), else MPa. Check `warnings` for which one was used.
+- **`--fit` lists exactly the parameters to fit**; it replaces the default set rather than adding
+  to it. Use `--fix` to hold one parameter and fit the rest.
 - **Unknown options and out-of-range values are errors**, never silently ignored. Do not work
   around one by dropping the option; fix the value or ask the user.
 - **Only `.xlsx` workbooks are read**, not `.xls`. Date cells are read as ISO 8601 text, so a date
@@ -96,7 +101,8 @@ VIRTUAL_ENV=$PWD/.venv .venv/bin/maturin develop --release -m crates/py/Cargo.to
 sh docs/check_examples.sh             # runs every `pk` example in the docs
 ```
 
-CI runs all of the above on every push and pull request.
+CI runs the equivalent of the above (formatting, clippy, tests, the Python tests on a built wheel,
+and the docs examples) on pushes to `main` and on every pull request.
 
 Rules that are easy to break:
 

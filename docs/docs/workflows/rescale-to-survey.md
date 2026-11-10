@@ -29,7 +29,7 @@ The result has a `rescale` section:
 
 ```json
 "rescale": {
-  "factor": 1.296502,
+  "factor": 1.147867,
   "refCi": 1602.84,
   "refQ": 1500,
   "refT": 301.15,

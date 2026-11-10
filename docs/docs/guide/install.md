@@ -72,6 +72,11 @@ like the Rust one.
 
 ## Check it works
 
+The sample files are in the `examples/` folder of the
+[source repository](https://github.com/PlantSimulationLab/PhytKit); they are
+not part of the pip package. If you installed from PyPI, clone the repository
+(or download `examples/aci.csv`) and run these from its top folder.
+
 ```bash
 pk describe fvcb
 pk fit photosynthesis examples/aci.csv --model fvcb

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import warnings as _warnings
+from pathlib import Path as _Path
 from typing import Any, Iterable, Mapping
 
 from . import _phytkit
@@ -20,8 +21,18 @@ from ._phytkit import PhytKitError, __version__, build_info, models, predict
 
 __all__ = [
     "PhytKitError", "PhytKitWarning", "__version__", "build_info", "concat", "describe", "fit", "fit_arrays",
-    "fit_many", "li600_correct", "li600_estimate", "models", "predict", "run",
+    "fit_many", "li600_correct", "li600_estimate", "models", "predict", "run", "skills_dir",
 ]
+
+
+def skills_dir() -> _Path:
+    """The folder of agent skills shipped with this version of phytkit.
+
+    `skills_dir() / "phytkit" / "SKILL.md"` is the guide for AI coding agents, with its
+    `references/` next to it. It always matches the installed version; copy it into a
+    harness's skills folder with `pk skills install`.
+    """
+    return _Path(__file__).resolve().parent / "skills"
 
 
 class PhytKitWarning(UserWarning):

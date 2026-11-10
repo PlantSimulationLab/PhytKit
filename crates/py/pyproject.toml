@@ -33,3 +33,6 @@ pk = "phytkit.__main__:main"
 python-source = "python"
 module-name = "phytkit._phytkit"
 features = ["pyo3/extension-module"]
+# Everything under python/phytkit ships, including the agent skill (phytkit.skills_dir());
+# never byte-compiled caches.
+exclude = ["**/__pycache__/**"]

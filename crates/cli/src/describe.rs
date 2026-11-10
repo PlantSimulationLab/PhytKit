@@ -67,6 +67,14 @@ pub fn describe(args: &ParsedArgs) -> Result<Obj> {
             "shape": "{\"ok\": false, \"command\", \"error\": {\"code\", \"message\", \"usage\", \"hint\"?, \"help\"?}}",
             "usage": "true when the command line was wrong (fix the arguments and retry); false when a file or its data was",
             "codes": crate::args::ERROR_CODES.iter().map(|(c, d)| json!({ "code": c, "description": d })).collect::<Vec<_>>()
+        },
+        "warnings": {
+            "shape": "{\"code\", \"level\", \"message\"}",
+            "levels": {
+                "info": "a choice PhytKit made (columns used, a documented conversion); the result is as good as the data",
+                "warning": "something that may make the result wrong; read it before using the result"
+            },
+            "codes": phytkit_core::warn::WARNING_CODES.iter().map(|(c, l, d)| json!({ "code": c, "level": l.as_str(), "description": d })).collect::<Vec<_>>()
         }
     })))
 }

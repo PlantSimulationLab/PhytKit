@@ -3,6 +3,7 @@
 use crate::linalg::solve_linear;
 use crate::numbers;
 use crate::table::read_rows;
+use crate::warn::Warning;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Li600Row {
@@ -20,7 +21,7 @@ pub struct Li600Row {
 pub struct Li600Parsed {
     pub rows: Vec<Li600Row>,
     pub n: usize,
-    pub warnings: Vec<String>,
+    pub warnings: Vec<Warning>,
     /// Every parsed cell, kept so a corrected file can be rebuilt from the original.
     pub grid: Vec<Vec<String>>,
     pub h_idx: usize,
@@ -128,9 +129,9 @@ pub fn parse_li600(text: &str) -> Result<Li600Parsed, String> {
     Ok(Li600Parsed {
         rows,
         n,
-        warnings: vec![format!(
-            "Parsed {n} observation(s) (header row {}).",
-            h_idx + 1
+        warnings: vec![Warning::new(
+            "observations_parsed",
+            format!("Parsed {n} observation(s) (header row {}).", h_idx + 1),
         )],
         grid,
         h_idx,

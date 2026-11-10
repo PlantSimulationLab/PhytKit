@@ -5,6 +5,7 @@ use crate::model::{Columns, Params};
 use crate::models::model_by_name;
 use crate::numbers;
 use crate::table::read_rows;
+use crate::warn::Warning;
 
 #[derive(Clone, Copy, Debug)]
 pub struct PoroRow {
@@ -20,7 +21,7 @@ pub struct PoroParsed {
     pub n: usize,
     pub used_corrected: bool,
     pub has_etr: bool,
-    pub warnings: Vec<String>,
+    pub warnings: Vec<Warning>,
     pub grid: Vec<Vec<String>>,
     pub h_idx: usize,
     pub data_start: usize,
@@ -216,16 +217,23 @@ pub fn parse_poro_file(text: &str) -> Result<PoroParsed, String> {
     }
     let n = rows.len();
     let mut warnings = vec![if used_corrected {
-        format!("Using gsw_corrected ({n} observation{}).", plural(n))
+        Warning::new(
+            "gsw_corrected_used",
+            format!("Using gsw_corrected ({n} observation{}).", plural(n)),
+        )
     } else {
-        format!(
-            "No gsw_corrected column — using uncorrected gsw ({n} observation{}).",
-            plural(n)
+        Warning::new(
+            "gsw_uncorrected_used",
+            format!(
+                "No gsw_corrected column — using uncorrected gsw ({n} observation{}).",
+                plural(n)
+            ),
         )
     }];
     if blank_corrected > 0 {
-        warnings.push(format!(
-            "{blank_corrected} row(s) skipped: gsw_corrected blank."
+        warnings.push(Warning::new(
+            "rows_skipped",
+            format!("{blank_corrected} row(s) skipped: gsw_corrected blank."),
         ));
     }
     let has_etr = rows.iter().any(|r| r.etr.is_finite());

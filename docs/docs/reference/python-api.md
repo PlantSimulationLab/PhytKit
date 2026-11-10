@@ -62,6 +62,7 @@ Returns a dict:
 | `predicted` | Model prediction for each point |
 | `rmse`, `r2` | Fit quality on `y` |
 | `iterations`, `converged` | How the fit finished; see [How fitting works](../concepts/fitting.md#when-the-fit-stops) |
+| `warnings` | `not_converged` and `parameter_at_bound` entries, as in [Output](output.md#warnings) |
 
 ### `fit_many`
 
@@ -103,6 +104,15 @@ The names of every built-in model.
     | `e.hint` | What to do about it, or `None` |
     | `e.usage` | `True` when the call was wrong, `False` when a file or its data was |
     | `e.help` | The command's usage line, on usage errors from command functions, or `None` |
+
+## Warnings
+
+`PhytKitWarning`
+:   A `UserWarning` subclass. Every function that returns a result with
+    `warnings` also raises each entry whose level is `warning` through Python's
+    `warnings` module, with the message `[code] file: message`. Entries whose level
+    is `info` are only in the result. See [Output](output.md#warnings) for the codes.
+    To turn them into errors, use `warnings.simplefilter("error", pk.PhytKitWarning)`.
 
 ## Version
 

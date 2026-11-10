@@ -118,4 +118,18 @@ reject a column whose length differs from `y`, any NaN or infinite value in
 the data, and a `curves` row index past the end of `y`. Drop incomplete rows
 before fitting.
 
+## Warnings
+
+Results carry a `warnings` list of `{code, level, message}` objects (see
+[Output](../reference/output.md#warnings)). Each entry whose level is `warning`
+(something that may make the result wrong, such as a parameter that ended on its
+bound) is also raised as a `phytkit.PhytKitWarning`:
+
+```python
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("error", pk.PhytKitWarning)   # stop on any of them
+    res = pk.fit("photosynthesis", "examples/aci.csv")
+```
+
 The full list of functions and arguments is in [Python API](../reference/python-api.md).

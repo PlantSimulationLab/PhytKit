@@ -5,6 +5,7 @@
 use crate::model::Columns;
 use crate::numbers;
 use crate::table::{read_rows, write_rows, Table};
+use crate::warn::Warning;
 use indexmap::IndexMap;
 use std::collections::HashSet;
 
@@ -18,7 +19,7 @@ pub struct ParsedFitData {
     pub n: usize,
     /// Column name used for each field, in a fixed order.
     pub mapping: IndexMap<String, String>,
-    pub warnings: Vec<String>,
+    pub warnings: Vec<Warning>,
     /// `K`: raw hydraulic conductance (vulnerability only).
     pub k: Option<Vec<f64>>,
     /// `Kmax` (vulnerability only).
@@ -263,13 +264,14 @@ pub fn soil_unit_in_name(field: &str) -> Option<(&'static str, f64)> {
 }
 
 /// A water-potential column named in bar is converted to MPa.
-fn bar_to_mpa(field: &str, vals: &mut [f64], warnings: &mut Vec<String>) {
+fn bar_to_mpa(field: &str, vals: &mut [f64], warnings: &mut Vec<Warning>) {
     if field.to_ascii_lowercase().contains("bar") {
         for v in vals.iter_mut() {
             *v /= 10.0;
         }
-        warnings.push(format!(
-            "Water potential \"{field}\" looked like bar; converted to MPa (÷10)."
+        warnings.push(Warning::new(
+            "unit_converted_by_name",
+            format!("Water potential \"{field}\" is named in bar; converted to MPa (÷10)."),
         ));
     }
 }
@@ -422,12 +424,15 @@ pub fn parse_vulnerability(text: &str) -> Result<ParsedFitData, String> {
         return Err("No usable numeric rows found.".into());
     }
 
-    let mut warnings = vec![format!(
-        "Using Ψ=\"{p_field}\", {}.",
-        match &plc_field {
-            Some(f) => format!("PLC=\"{f}\""),
-            None => format!("K=\"{}\"", k_field.as_deref().unwrap()),
-        }
+    let mut warnings = vec![Warning::new(
+        "columns_mapped",
+        format!(
+            "Using Ψ=\"{p_field}\", {}.",
+            match &plc_field {
+                Some(f) => format!("PLC=\"{f}\""),
+                None => format!("K=\"{}\"", k_field.as_deref().unwrap()),
+            }
+        ),
     )];
 
     bar_to_mpa(&p_field, &mut p, &mut warnings);
@@ -435,8 +440,10 @@ pub fn parse_vulnerability(text: &str) -> Result<ParsedFitData, String> {
         for v in p.iter_mut() {
             *v = -*v;
         }
-        warnings
-            .push("Water potential was positive; treated as tension and negated to MPa.".into());
+        warnings.push(Warning::new(
+            "sign_convention",
+            "Water potential was positive; treated as tension and negated to MPa.",
+        ));
     }
 
     if let Some(plc) = &plc_field {
@@ -445,8 +452,9 @@ pub fn parse_vulnerability(text: &str) -> Result<ParsedFitData, String> {
             let frac = if plc_is_fraction { *v } else { *v / 100.0 };
             *v = 1.0 - frac;
         }
-        warnings.push(format!(
-            "Fitting relative conductance K = 1 − PLC/100 from \"{plc}\"."
+        warnings.push(Warning::new(
+            "relative_conductance",
+            format!("Fitting relative conductance K = 1 − PLC/100 from \"{plc}\"."),
         ));
     } else if !(numbers::max_of(&y) > 0.0) {
         return Err(format!(
@@ -503,21 +511,29 @@ pub fn parse_pv_curve(text: &str) -> Result<ParsedFitData, String> {
         return Err("No usable numeric rows found.".into());
     }
 
-    let mut warnings = vec![format!("Using RWC=\"{w_field}\", Ψ=\"{p_field}\".")];
+    let mut warnings = vec![Warning::new(
+        "columns_mapped",
+        format!("Using RWC=\"{w_field}\", Ψ=\"{p_field}\"."),
+    )];
 
     bar_to_mpa(&p_field, &mut y, &mut warnings);
     if numbers::max_of(&w) > 1.5 {
         for v in w.iter_mut() {
             *v /= 100.0;
         }
-        warnings.push("RWC looked like a percent; scaled to a 0–1 fraction.".into());
+        warnings.push(Warning::new(
+            "unit_guessed_from_values",
+            "RWC looked like a percent; scaled to a 0–1 fraction.",
+        ));
     }
     if numbers::min_of(&y) >= 0.0 && numbers::max_of(&y) > 0.0 {
         for v in y.iter_mut() {
             *v = -*v;
         }
-        warnings
-            .push("Water potential was positive; treated as tension and negated to MPa.".into());
+        warnings.push(Warning::new(
+            "sign_convention",
+            "Water potential was positive; treated as tension and negated to MPa.",
+        ));
     }
 
     let n = w.len();
@@ -639,35 +655,44 @@ pub fn parse_stomatal(text: &str) -> Result<ParsedFitData, String> {
         return Err("No usable numeric rows found.".into());
     }
 
-    let mut warnings = vec![format!(
-        "Using gs=\"{gs_field}\", Q=\"{q_field}\", {}.",
-        match &ds_field {
-            Some(f) => format!("Ds=\"{f}\""),
-            None => format!("VPD=\"{d_field}\""),
-        }
+    let mut warnings = vec![Warning::new(
+        "columns_mapped",
+        format!(
+            "Using gs=\"{gs_field}\", Q=\"{q_field}\", {}.",
+            match &ds_field {
+                Some(f) => format!("Ds=\"{f}\""),
+                None => format!("VPD=\"{d_field}\""),
+            }
+        ),
     )];
 
     if numbers::max_of(&gs) > 10.0 {
         for v in gs.iter_mut() {
             *v /= 1000.0;
         }
-        warnings
-            .push("Stomatal conductance looked like mmol m⁻² s⁻¹; scaled to mol (÷1000).".into());
+        warnings.push(Warning::new(
+            "unit_guessed_from_values",
+            "Stomatal conductance looked like mmol m⁻² s⁻¹; scaled to mol (÷1000).",
+        ));
     }
     if ds_field.is_some() && numbers::max_of(&ds) < 1.0 {
         for v in ds.iter_mut() {
             *v *= 1000.0;
         }
-        warnings.push(format!(
-            "Ds \"{d_field}\" looked like mol/mol; scaled to mmol/mol (×1000)."
+        warnings.push(Warning::new(
+            "unit_guessed_from_values",
+            format!("Ds \"{d_field}\" looked like mol/mol; scaled to mmol/mol (×1000)."),
         ));
     } else if let Some(vpd) = &vpd_field {
-        warnings.push(format!(
-            "Converted VPD \"{vpd}\" (kPa) to Ds (mmol/mol){}.",
-            match &patm_field {
-                Some(f) => format!(" using Patm \"{f}\""),
-                None => " at 101.325 kPa".into(),
-            }
+        warnings.push(Warning::new(
+            "vpd_converted",
+            format!(
+                "Converted VPD \"{vpd}\" (kPa) to Ds (mmol/mol){}.",
+                match &patm_field {
+                    Some(f) => format!(" using Patm \"{f}\""),
+                    None => " at 101.325 kPa".into(),
+                }
+            ),
         ));
     }
 
@@ -747,31 +772,45 @@ pub fn parse_medlyn(text: &str) -> Result<ParsedFitData, String> {
     }
 
     let cs_default = numbers::text(CS_DEFAULT);
-    let mut warnings = vec![format!(
-        "Using gs=\"{gs_field}\", A=\"{a_field}\", Cs={}, {}.",
-        match &cs_field {
-            Some(f) => format!("\"{f}\""),
-            None => format!("{cs_default} µmol mol⁻¹ (no CO2 column)"),
-        },
-        match &vpd_field {
-            Some(f) => format!("VPD=\"{f}\""),
-            None => format!("Ds=\"{d_field}\""),
-        }
+    let mut warnings = vec![Warning::new(
+        "columns_mapped",
+        format!(
+            "Using gs=\"{gs_field}\", A=\"{a_field}\", Cs={}, {}.",
+            match &cs_field {
+                Some(f) => format!("\"{f}\""),
+                None => format!("{cs_default} µmol mol⁻¹ (no CO2 column)"),
+            },
+            match &vpd_field {
+                Some(f) => format!("VPD=\"{f}\""),
+                None => format!("Ds=\"{d_field}\""),
+            }
+        ),
     )];
+    if cs_field.is_none() {
+        warnings.push(Warning::new(
+            "co2_assumed",
+            format!("No CO2 column found; leaf-surface CO2 assumed to be {cs_default} µmol mol⁻¹."),
+        ));
+    }
     if numbers::max_of(&gs) > 10.0 {
         for v in gs.iter_mut() {
             *v /= 1000.0;
         }
-        warnings
-            .push("Stomatal conductance looked like mmol m⁻² s⁻¹; scaled to mol (÷1000).".into());
+        warnings.push(Warning::new(
+            "unit_guessed_from_values",
+            "Stomatal conductance looked like mmol m⁻² s⁻¹; scaled to mol (÷1000).",
+        ));
     }
     if let Some(dsf) = &ds_field {
-        warnings.push(format!(
-            "Converted Ds \"{dsf}\" (mmol/mol) to VPD (kPa){}.",
-            match &patm_field {
-                Some(f) => format!(" using Patm \"{f}\""),
-                None => " at 101.325 kPa".into(),
-            }
+        warnings.push(Warning::new(
+            "vpd_converted",
+            format!(
+                "Converted Ds \"{dsf}\" (mmol/mol) to VPD (kPa){}.",
+                match &patm_field {
+                    Some(f) => format!(" using Patm \"{f}\""),
+                    None => " at 101.325 kPa".into(),
+                }
+            ),
         ));
     }
 
@@ -827,7 +866,10 @@ pub fn parse_soil_retention(text: &str) -> Result<ParsedFitData, String> {
         return Err("No usable numeric rows found.".into());
     }
 
-    let mut warnings = vec![format!("Using ψ=\"{p_field}\", θ=\"{t_field}\".")];
+    let mut warnings = vec![Warning::new(
+        "columns_mapped",
+        format!("Using ψ=\"{p_field}\", θ=\"{t_field}\"."),
+    )];
 
     // Units are not converted here: the caller applies --units, or the unit the column
     // names (soil_unit_in_name), so the two can never both apply.
@@ -835,13 +877,19 @@ pub fn parse_soil_retention(text: &str) -> Result<ParsedFitData, String> {
         for v in psi.iter_mut() {
             *v = -*v;
         }
-        warnings.push("Matric potential was positive; treated as suction and negated.".into());
+        warnings.push(Warning::new(
+            "sign_convention",
+            "Matric potential was positive; treated as suction and negated.",
+        ));
     }
     if numbers::max_of(&theta) > 1.5 {
         for v in theta.iter_mut() {
             *v /= 100.0;
         }
-        warnings.push("Water content looked like a percent; scaled to a 0–1 fraction.".into());
+        warnings.push(Warning::new(
+            "unit_guessed_from_values",
+            "Water content looked like a percent; scaled to a 0–1 fraction.",
+        ));
     }
 
     let n = psi.len();
@@ -880,7 +928,8 @@ mod tests {
         assert_eq!(d.mapping.keys().collect::<Vec<_>>(), ["P", "K"]);
         let d = parse_vulnerability("P,K leaf\n-1,3\n-2,1\n").unwrap();
         assert_eq!(d.kmax, Some(3.0));
-        assert_eq!(d.warnings[0], "Using Ψ=\"P\", K=\"K leaf\".");
+        assert_eq!(d.warnings[0].code, "columns_mapped");
+        assert_eq!(d.warnings[0].message, "Using Ψ=\"P\", K=\"K leaf\".");
     }
 
     #[test]

@@ -23,6 +23,7 @@ pub mod rescale;
 pub mod table;
 pub mod tresp;
 pub mod units;
+pub mod warn;
 pub mod xlsx;
 
 pub use fit::{fit, FitOptions, FitResult};

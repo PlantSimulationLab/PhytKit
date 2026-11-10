@@ -56,9 +56,11 @@ See [Photosynthesis models](../concepts/photosynthesis.md#mesophyll-conductance)
   "fitted": ["Vcmax25", "Jmax25", "TPU25", "Rd25", "alpha", "theta", "..."],
   "params": { "Vcmax25": 95.231833, "Jmax25": 181.472849, "...": "..." },
   "warnings": [
-    "Using A=\"A\", Ci=\"Ci\", light=\"Qabs\", T=\"Tleaf\".",
-    "Treated \"Tleaf\" as °C and converted 66 value(s) to Kelvin.",
-    "Per-curve constraints: 6 curve(s) via \"CurveID\"."
+    { "code": "columns_mapped", "level": "info", "message": "Using A=\"A\", Ci=\"Ci\", light=\"Qabs\", T=\"Tleaf\"." },
+    { "code": "temperature_celsius", "level": "info", "message": "Treated \"Tleaf\" as °C and converted 66 value(s) to Kelvin." },
+    { "code": "curves_detected", "level": "info", "message": "Per-curve constraints: 6 curve(s) via \"CurveID\"." },
+    { "code": "parameter_at_bound", "level": "warning", "message": "Vcmax_dHd ended on its upper bound (500): the bound, not the data, sets its value." },
+    { "code": "parameter_at_bound", "level": "warning", "message": "Vcmax_Topt ended on its upper bound (333): the bound, not the data, sets its value." }
   ]
 }
 ```
@@ -71,13 +73,20 @@ See [Photosynthesis models](../concepts/photosynthesis.md#mesophyll-conductance)
 | `iterations`, `converged` | How the fitter finished; see [How fitting works](../concepts/fitting.md) |
 | `fitted` | The parameters that were optimized |
 | `params` | Every parameter value, fitted or fixed |
-| `warnings` | What PhytKit assumed or changed. Read these. |
+| `warnings` | What PhytKit assumed or changed, and anything that may make the result wrong. Read these. |
 
-The warnings here confirm that PhytKit:
+Each warning has a stable `code` and a `level`. The `info` entries here confirm that
+PhytKit:
 
 - used the columns you expected,
 - read `Tleaf` as °C and converted it to Kelvin, and
 - found 6 curves through `CurveID`.
+
+The two `warning` entries matter more: `Vcmax_dHd` and `Vcmax_Topt` ended on their
+upper bounds, so their values were set by the bounds, not by the data. The curves run
+from 20 to 36 °C, and nothing in them pins down where Vcmax peaks. Report those two as
+unconstrained, or hold them at literature values with `--fix`. Vcmax25 and Jmax25
+are still well determined.
 
 The full list of output fields is in [Output](../reference/output.md).
 

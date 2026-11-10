@@ -161,7 +161,11 @@ fn params(p: Option<&Bound<'_, PyDict>>) -> PyResult<Params> {
     Ok(out)
 }
 
-fn result_dict<'py>(py: Python<'py>, r: &FitResult) -> PyResult<Bound<'py, PyDict>> {
+fn result_dict<'py>(
+    py: Python<'py>,
+    m: &dyn phytkit_core::Model,
+    r: &FitResult,
+) -> PyResult<Bound<'py, PyDict>> {
     let d = PyDict::new(py);
     let p = PyDict::new(py);
     for (k, v) in &r.params {
@@ -174,6 +178,8 @@ fn result_dict<'py>(py: Python<'py>, r: &FitResult) -> PyResult<Bound<'py, PyDic
     d.set_item("r2", r.r2)?;
     d.set_item("iterations", r.iterations)?;
     d.set_item("converged", r.converged)?;
+    let w = phytkit_core::warn::to_json(&phytkit_cli::fit_warnings(m, r));
+    d.set_item("warnings", to_py(py, &w)?)?;
     Ok(d)
 }
 
@@ -341,7 +347,8 @@ fn check_curves(curves: Option<&Vec<Vec<usize>>>, n: usize) -> PyResult<()> {
 ///
 /// `x` maps each of the model's inputs (see `describe(model)`) to a sequence of values;
 /// temperatures for the photosynthesis models are in Kelvin. Returns params, fitted names,
-/// predicted values, rmse, r2, iterations and converged.
+/// predicted values, rmse, r2, iterations, converged and warnings (not_converged,
+/// parameter_at_bound).
 #[pyfunction]
 #[pyo3(signature = (model_name, x, y, *, fit_params=None, init=None, max_iter=None, curves=None, constraints=None, constraint_weights=None))]
 #[allow(clippy::too_many_arguments)]
@@ -371,7 +378,7 @@ fn fit_arrays<'py>(
         constraint_weights,
     )?;
     let r = py.detach(|| fit(m, &cols, &y, &opts));
-    result_dict(py, &r)
+    result_dict(py, m, &r)
 }
 
 /// Fit the same model to many datasets in parallel. `datasets` is a list of `(x, y)` pairs.
@@ -414,7 +421,7 @@ fn fit_many<'py>(
         py.detach(|| pool.install(|| data.par_iter().map(|(x, y)| fit(m, x, y, &opts)).collect()));
     let out = PyList::empty(py);
     for r in &results {
-        out.append(result_dict(py, r)?)?;
+        out.append(result_dict(py, m, r)?)?;
     }
     Ok(out)
 }

@@ -11,6 +11,7 @@ use phytkit_core::numbers::{self, json as num};
 use phytkit_core::rescale::{
     predict_at_ref, rescale_factor, saturating_ci, survey_conditions, Stat,
 };
+use phytkit_core::warn::Warning;
 use phytkit_core::{fit, FitOptions, FitResult};
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -374,7 +375,9 @@ fn summarize(
         o.insert("derived".into(), params_json(d));
     }
     o.insert("rescale".into(), rescale.map_or(Value::Null, Value::Object));
-    o.insert("warnings".into(), json!(data.warnings));
+    let mut warnings = data.warnings.clone();
+    warnings.extend(fit_warnings(m, r));
+    o.insert("warnings".into(), phytkit_core::warn::to_json(&warnings));
     o.insert("elapsedMs".into(), json!(ms.round() as u64));
     if predicted {
         o.insert(
@@ -684,27 +687,33 @@ pub fn fit_command(args: &ParsedArgs) -> Result<Output> {
                     });
                 let (_, factor) = match (unit_given, &named) {
                     (Some(u), Some((field, n))) if n.0 != u.0 => {
-                        data.warnings.push(format!(
-                            "Column \"{field}\" names {}, but --units {} was given; read it as {}.",
-                            n.0, u.0, u.0
+                        data.warnings.push(Warning::new(
+                            "soil_units_overridden",
+                            format!(
+                                "Column \"{field}\" names {}, but --units {} was given; read it as {}.",
+                                n.0, u.0, u.0
+                            ),
                         ));
                         u
                     }
                     (Some(u), _) => u,
                     (None, Some((field, n))) => {
                         if n.1 != 1.0 {
-                            data.warnings.push(format!(
-                                "Column \"{field}\" is in {} by its name; converted to MPa.",
-                                n.0
+                            data.warnings.push(Warning::new(
+                                "unit_converted_by_name",
+                                format!(
+                                    "Column \"{field}\" is in {} by its name; converted to MPa.",
+                                    n.0
+                                ),
                             ));
                         }
                         *n
                     }
                     (None, None) => {
-                        data.warnings.push(
-                            "No --units given and the column name doesn't state a unit; ψ read as MPa."
-                                .to_string(),
-                        );
+                        data.warnings.push(Warning::new(
+                            "soil_units_assumed",
+                            "No --units given and the column name doesn't state a unit; ψ read as MPa.",
+                        ));
                         ("MPa", 1.0)
                     }
                 };
@@ -845,4 +854,50 @@ pub fn fit_command(args: &ParsedArgs) -> Result<Output> {
         "errors": errors,
     }));
     Ok(Output::Json(o))
+}
+
+/// Warnings about the fit itself: it did not converge, or a fitted parameter ended on a
+/// bound (so the bound, not the data, set its value).
+pub fn fit_warnings(m: &dyn Model, r: &FitResult) -> Vec<Warning> {
+    let mut out = Vec::new();
+    if !r.converged {
+        out.push(Warning::new(
+            "not_converged",
+            format!(
+                "The fit stopped after {} iteration(s) without converging; the parameters may not be the best fit. Raise --max-iter, or check the data and the starting values.",
+                r.iterations
+            ),
+        ));
+    }
+    for name in &r.fitted {
+        let (Some(spec), Some(&v)) = (
+            m.params().iter().find(|p| p.name == name.as_str()),
+            r.params.get(name),
+        ) else {
+            continue;
+        };
+        let (lb, ub) = (
+            spec.lb.unwrap_or(f64::NEG_INFINITY),
+            spec.ub.unwrap_or(f64::INFINITY),
+        );
+        // Within 1e-6 of the bound, relative to the bound's size (or to 1 near zero).
+        let near = |b: f64| b.is_finite() && (v - b).abs() <= 1e-6 * b.abs().max(1.0);
+        let side = if near(lb) {
+            Some(("lower", lb))
+        } else if near(ub) {
+            Some(("upper", ub))
+        } else {
+            None
+        };
+        if let Some((which, b)) = side {
+            out.push(Warning::new(
+                "parameter_at_bound",
+                format!(
+                    "{name} ended on its {which} bound ({}): the bound, not the data, sets its value.",
+                    numbers::text(b)
+                ),
+            ));
+        }
+    }
+    out
 }

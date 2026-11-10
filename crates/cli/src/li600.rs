@@ -63,7 +63,7 @@ pub fn correct(args: &ParsedArgs) -> Result<Output> {
             "maxOverestimatePct": num(numbers::round_to(numbers::max_of(&overestimates), 3)),
             "maxMeasuredGsw": num(numbers::round_to(numbers::max_of(&measured), 6))
         },
-        "warnings": parsed.warnings,
+        "warnings": phytkit_core::warn::to_json(&parsed.warnings),
         "out": out
     }));
     if args.bool("rows", false) {
@@ -203,10 +203,13 @@ pub fn estimate(args: &ParsedArgs) -> Result<Output> {
     let gm = model.gm(&params);
     let mut warnings = parsed.warnings.clone();
     if ok.len() < parsed.n {
-        warnings.push(format!(
-            "{} of {} reading(s) could not be solved and are left out of the summary.",
-            parsed.n - ok.len(),
-            parsed.n
+        warnings.push(phytkit_core::warn::Warning::new(
+            "readings_unsolved",
+            format!(
+                "{} of {} reading(s) could not be solved and are left out of the summary.",
+                parsed.n - ok.len(),
+                parsed.n
+            ),
         ));
     }
     let a: Vec<f64> = ok.iter().map(|r| r.a).collect();
@@ -231,7 +234,7 @@ pub fn estimate(args: &ParsedArgs) -> Result<Output> {
             "meanCi": num(numbers::round_to(mean(&ci), 2)),
             "meanCiCa": num(numbers::round_to(mean(&ci) / ca, 4))
         },
-        "warnings": warnings,
+        "warnings": phytkit_core::warn::to_json(&warnings),
         "out": out
     }));
     if args.bool("rows", false) {

@@ -4,6 +4,7 @@ pub mod args;
 mod concat;
 mod describe;
 mod fit;
+pub use fit::fit_warnings;
 mod hydraulics_adapter;
 mod io;
 mod li600;

@@ -2,6 +2,7 @@
 
 use crate::parse::candidates;
 use crate::table::{write_rows, Table};
+use crate::warn::Warning;
 use indexmap::IndexSet;
 use std::collections::{HashMap, HashSet};
 
@@ -15,7 +16,7 @@ pub struct ConcatResult {
     pub curves: usize,
     /// True when CurveIDs were prefixed with their file's label to keep files apart.
     pub namespaced: bool,
-    pub warnings: Vec<String>,
+    pub warnings: Vec<Warning>,
 }
 
 /// A file's label: its name without the extension or a leading LI-6800
@@ -84,7 +85,7 @@ impl Source {
 
 /// A warning when some files have the preferred light column and others don't: the
 /// fitter would drop the rows of the files without it.
-fn light_column_warning(sources: &[Source]) -> Option<String> {
+fn light_column_warning(sources: &[Source]) -> Option<Warning> {
     if sources.len() < 2 {
         return None;
     }
@@ -102,11 +103,14 @@ fn light_column_warning(sources: &[Source]) -> Option<String> {
         format!(" (they log \"{}\")", others.join("\"/\""))
     };
     let labels: Vec<&str> = lacking.iter().map(|s| s.label.as_str()).collect();
-    Some(format!(
-        "{} of {} file(s) have no \"{winner}\" column{others}. The fitter prefers \"{winner}\", so their {lost} row(s) would be dropped: {}. Merge logs recorded the same way.",
-        lacking.len(),
-        sources.len(),
-        labels.join(", ")
+    Some(Warning::new(
+        "rows_would_drop",
+        format!(
+            "{} of {} file(s) have no \"{winner}\" column{others}. The fitter prefers \"{winner}\", so their {lost} row(s) would be dropped: {}. Merge logs recorded the same way.",
+            lacking.len(),
+            sources.len(),
+            labels.join(", ")
+        ),
     ))
 }
 
@@ -162,9 +166,12 @@ pub fn concat_csvs<N: AsRef<str>, C: AsRef<str>>(sources: &[(N, C)]) -> ConcatRe
                 s.label = format!("{}#{}", s.label, n);
             }
         }
-        warnings.push(format!(
-            "Several files share the label {}; they were labelled by their full file names instead, so their curves stay apart.",
-            shared.iter().map(|l| format!("\"{l}\"")).collect::<Vec<_>>().join(", ")
+        warnings.push(Warning::new(
+            "labels_disambiguated",
+            format!(
+                "Several files share the label {}; they were labelled by their full file names instead, so their curves stay apart.",
+                shared.iter().map(|l| format!("\"{l}\"")).collect::<Vec<_>>().join(", ")
+            ),
         ));
     }
     let id_field = sources

@@ -38,6 +38,6 @@ pub fn concat(args: &ParsedArgs) -> Result<Output> {
         .collect();
     let rows = res.csv.trim().lines().count().saturating_sub(1);
     Ok(Output::Json(object(json!({
-        "files": files, "curves": res.curves, "namespaced": res.namespaced, "warnings": res.warnings, "out": out, "rows": rows
+        "files": files, "curves": res.curves, "namespaced": res.namespaced, "warnings": phytkit_core::warn::to_json(&res.warnings), "out": out, "rows": rows
     }))))
 }

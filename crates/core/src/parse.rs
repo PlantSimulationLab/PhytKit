@@ -4,6 +4,7 @@
 use crate::model::Columns;
 use crate::numbers;
 use crate::table::Table;
+use crate::warn::Warning;
 use indexmap::IndexMap;
 
 /// Accepted column names for each input, in order of preference.
@@ -37,7 +38,7 @@ pub struct ParsedDataset {
     pub columns: Columns,
     /// Row indices of each curve, when the file has a CurveID column.
     pub curves: Option<Vec<Vec<usize>>>,
-    pub warnings: Vec<String>,
+    pub warnings: Vec<Warning>,
 }
 
 pub fn parse_csv(text: &str) -> Result<ParsedDataset, String> {
@@ -88,9 +89,12 @@ pub fn parse_csv(text: &str) -> Result<ParsedDataset, String> {
         }
     }
 
-    let mut warnings = vec![format!(
-        "Using A=\"{}\", Ci=\"{}\", light=\"{}\", T=\"{}\".",
-        mapping["A"], mapping["Ci"], mapping["Q"], mapping["T"]
+    let mut warnings = vec![Warning::new(
+        "columns_mapped",
+        format!(
+            "Using A=\"{}\", Ci=\"{}\", light=\"{}\", T=\"{}\".",
+            mapping["A"], mapping["Ci"], mapping["Q"], mapping["T"]
+        ),
     )];
     let (a, ci, q, t_raw) = (
         column(idx["A"]),
@@ -113,9 +117,12 @@ pub fn parse_csv(text: &str) -> Result<ParsedDataset, String> {
         })
         .collect();
     if celsius > 0 {
-        warnings.push(format!(
-            "Treated \"{}\" as °C and converted {celsius} value(s) to Kelvin.",
-            mapping["T"]
+        warnings.push(Warning::new(
+            "temperature_celsius",
+            format!(
+                "Treated \"{}\" as °C and converted {celsius} value(s) to Kelvin.",
+                mapping["T"]
+            ),
         ));
     }
 
@@ -138,8 +145,9 @@ pub fn parse_csv(text: &str) -> Result<ParsedDataset, String> {
     }
     let dropped = table.rows.len() - y.len();
     if dropped > 0 {
-        warnings.push(format!(
-            "Dropped {dropped} row(s) with missing/non-numeric values."
+        warnings.push(Warning::new(
+            "rows_dropped",
+            format!("Dropped {dropped} row(s) with missing/non-numeric values."),
         ));
     }
     if y.is_empty() {
@@ -147,8 +155,8 @@ pub fn parse_csv(text: &str) -> Result<ParsedDataset, String> {
     }
     let curves = curve_col.map(|_| groups.into_values().collect::<Vec<_>>());
     warnings.push(match (&curves, curve_col) {
-        (Some(c), Some(j)) => format!("Per-curve constraints: {} curve(s) via \"{}\".", c.len(), table.header[j]),
-        _ => "Per-curve constraints: single curve assumed (add a CurveID column for multiple curves).".to_string(),
+        (Some(c), Some(j)) => Warning::new("curves_detected", format!("Per-curve constraints: {} curve(s) via \"{}\".", c.len(), table.header[j])),
+        _ => Warning::new("single_curve", "Per-curve constraints: single curve assumed (add a CurveID column for multiple curves)."),
     });
 
     let mut x = Columns::new();

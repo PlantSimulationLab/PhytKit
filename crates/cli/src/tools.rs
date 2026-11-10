@@ -12,7 +12,7 @@ pub struct FitData {
     pub y: Vec<f64>,
     /// Column used for each field, in the parser's order.
     pub mapping: Vec<(String, String)>,
-    pub warnings: Vec<String>,
+    pub warnings: Vec<phytkit_core::warn::Warning>,
     /// Row groups per CurveID (photosynthesis only).
     pub curves: Option<Vec<Vec<usize>>>,
     /// Every parsed column (photosynthesis only), used when rescaling.

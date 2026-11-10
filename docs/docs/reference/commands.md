@@ -92,6 +92,30 @@ pk concat <file...> [options]
 | `--out` | file | Write the merged CSV to a file, and print a JSON summary |
 | `--format` | `json`, `csv` | Default `csv` (the merged file) without `--out`, `json` with it |
 
+## `pk agent-files`
+
+```bash
+pk agent-files [dir] [--dry-run] [--stdout]
+```
+
+Writes `AGENTS.md` and `CLAUDE.md`, holding PhytKit's agent guidance, into `dir`
+(default: the current folder). A file is rewritten only while its first line is the
+`<!-- phytkit-managed-file` marker. `PHYTKIT_AGENT_FILES=0` makes the command write nothing.
+The output has `dir`, `disabled`, `files` (each `name`, `path`, `status`: `written`,
+`would be written`, `unchanged` or `user-owned`) and `notes`. See
+[Using an AI coding agent](../guide/agents.md). Python package only.
+
+## `pk skills path`, `pk skills install`
+
+```bash
+pk skills path
+pk skills install [--to <folder>] [--force]
+```
+
+`path` prints where the installed package keeps its agent skill (`path`, `skill`,
+`version`). `install` copies it into `--to` (default `.claude/skills`), replacing a copy
+it made earlier; `--force` also replaces a folder it didn't make. Python package only.
+
 ## Errors
 
 ```json
@@ -136,6 +160,7 @@ under `errors`.
 | `permission_denied` | false | An input file can't be read |
 | `read_failed` | false | An input file couldn't be read for another reason |
 | `write_failed` | false | An `--out` file couldn't be written |
+| `already_exists` | false | `pk skills install` would replace a folder it didn't install (pass `--force`) |
 | `invalid_data` | false | A file was read but doesn't hold the data the command needs |
 | `rescale_failed` | false | Rescale mode couldn't compute a factor from the survey and curve data |
 

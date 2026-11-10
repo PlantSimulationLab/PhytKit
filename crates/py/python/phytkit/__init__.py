@@ -20,7 +20,7 @@ from . import _phytkit
 from ._phytkit import PhytKitError, __version__, build_info, models, predict
 
 __all__ = [
-    "PhytKitError", "PhytKitWarning", "__version__", "build_info", "concat", "describe", "fit", "fit_arrays",
+    "PhytKitError", "PhytKitWarning", "__version__", "agent_files", "build_info", "concat", "describe", "fit", "fit_arrays",
     "fit_many", "li600_correct", "li600_estimate", "models", "predict", "run", "skills_dir",
 ]
 
@@ -33,6 +33,20 @@ def skills_dir() -> _Path:
     harness's skills folder with `pk skills install`.
     """
     return _Path(__file__).resolve().parent / "skills"
+
+
+_phytkit._set_skills_dir(str(skills_dir()))
+
+
+def agent_files(dir: str | os.PathLike = ".", *, dry_run: bool = False) -> dict:
+    """Write AGENTS.md and CLAUDE.md with PhytKit's agent guidance into a project
+    (`pk agent-files`).
+
+    A file is rewritten only while its first line is the phytkit marker; delete that line
+    to keep your own edits. PHYTKIT_AGENT_FILES=0 turns it off. Returns each file's status:
+    "written", "would be written" (dry_run), "unchanged" or "user-owned".
+    """
+    return run(["agent-files", os.fspath(dir), *(["--dry-run"] if dry_run else [])])
 
 
 class PhytKitWarning(UserWarning):

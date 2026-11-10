@@ -76,6 +76,7 @@ nav:
       - Your first fit: guide/first-fit.md
       - Using the command line: guide/command-line.md
       - Scripting with Python: guide/python.md
+      - Using an AI coding agent: guide/agents.md
   - Concepts:
       - concepts/index.md
       - How fitting works: concepts/fitting.md

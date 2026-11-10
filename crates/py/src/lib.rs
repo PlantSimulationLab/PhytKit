@@ -472,6 +472,13 @@ fn build_info(py: Python<'_>) -> PyResult<Bound<'_, PyDict>> {
     Ok(d)
 }
 
+/// Tell the command layer where the installed package's agent skills are (for
+/// `pk agent-files` and `pk skills`). Called once by `phytkit/__init__.py`.
+#[pyfunction]
+fn _set_skills_dir(path: std::path::PathBuf) {
+    phytkit_cli::agent_files::set_skills_dir(path);
+}
+
 #[pymodule]
 fn _phytkit(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run, m)?)?;
@@ -480,6 +487,7 @@ fn _phytkit(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fit_many, m)?)?;
     m.add_function(wrap_pyfunction!(predict, m)?)?;
     m.add_function(wrap_pyfunction!(build_info, m)?)?;
+    m.add_function(wrap_pyfunction!(_set_skills_dir, m)?)?;
     m.add("PhytKitError", m.py().get_type::<PhytKitError>())?;
     m.add_function(wrap_pyfunction!(main, m)?)?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;

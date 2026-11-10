@@ -201,6 +201,36 @@ pub const COMMANDS: &[Command] = &[
         example: "pk concat leaf1 leaf2 leaf3 --out merged.csv",
         check_args: None,
     },
+    Command {
+        name: "agent-files",
+        summary: "Write AGENTS.md and CLAUDE.md with PhytKit's agent guidance into a project (Python package only)",
+        args: &[Arg { name: "dir", help: "The project folder (default: the current folder)", required: false, many: false }],
+        options: &[
+            opt("dry-run", Kind::Switch, None, "Report what would be written, and write nothing"),
+            opt("stdout", Kind::Switch, None, "Print the AGENTS.md text instead of writing files"),
+        ],
+        example: "pk agent-files .",
+        check_args: None,
+    },
+    Command {
+        name: "skills path",
+        summary: "Where the agent skill shipped with this version is installed (Python package only)",
+        args: &[],
+        options: &[],
+        example: "pk skills path",
+        check_args: None,
+    },
+    Command {
+        name: "skills install",
+        summary: "Copy the agent skill into a harness's skills folder (Python package only)",
+        args: &[],
+        options: &[
+            opt("to", Kind::Text("folder"), Some(".claude/skills"), "Skills folder to copy into"),
+            opt("force", Kind::Switch, None, "Replace an existing copy that pk didn't install"),
+        ],
+        example: "pk skills install --to .claude/skills",
+        check_args: None,
+    },
 ];
 
 pub fn command(name: &str) -> Option<&'static Command> {

@@ -75,3 +75,6 @@ fit photosynthesis examples/aci.csv --model empiricalA --ci-based
 fit photosynthesis examples/aci.csv --ci-based --fix gm
 describe fvcb extra
 concat
+skills
+skills instal
+agent-files --dry-rn

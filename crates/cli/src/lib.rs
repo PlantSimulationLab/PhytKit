@@ -1,5 +1,6 @@
 //! The `pk` command layer, shared by the `pk` binary and the Python bindings.
 
+pub mod agent_files;
 pub mod args;
 mod concat;
 mod describe;
@@ -47,6 +48,19 @@ fn unknown_command(written: &str) -> CliError {
             did_you_mean(guess.as_deref())
         ));
     }
+    if written == "skills" || written.starts_with("skills ") {
+        let sub = written.trim_start_matches("skills").trim();
+        let message = if sub.is_empty() {
+            "pk skills needs a subcommand: path or install.".to_string()
+        } else {
+            format!("Unknown command pk skills {sub}.")
+        };
+        let guess = suggest(sub, ["path", "install"]).map(|s| format!("pk skills {s}"));
+        return CliError::usage("unknown_command", message).hint(format!(
+            "{}Commands: pk skills path (where the agent skill is), pk skills install (copy it into .claude/skills).",
+            did_you_mean(guess.as_deref())
+        ));
+    }
     let guess = suggest(written, names.iter().copied()).map(|s| format!("pk {s}"));
     CliError::usage("unknown_command", format!("Unknown command \"{written}\".")).hint(format!(
         "{}Commands: {}. Run \"pk --help\" for an overview.",
@@ -84,6 +98,9 @@ pub fn run(argv: &[String]) -> Result<Output> {
         "li600 estimate" => li600::estimate(&args),
         "fit" => fit::fit_command(&args),
         "concat" => concat::concat(&args),
+        "agent-files" => agent_files::agent_files(&args),
+        "skills path" => agent_files::skills_path(&args),
+        "skills install" => agent_files::skills_install(&args),
         _ => unreachable!("every command in the table is dispatched"),
     }
 }
@@ -91,9 +108,9 @@ pub fn run(argv: &[String]) -> Result<Output> {
 /// The command name used in output (`"li600 correct"` for `li600 correct ...`).
 pub fn command_name(argv: &[String]) -> Option<String> {
     match argv.first().map(String::as_str) {
-        Some("li600") => Some(match argv.get(1) {
-            Some(sub) if !sub.starts_with('-') => format!("li600 {sub}"),
-            _ => "li600".to_string(),
+        Some(group @ ("li600" | "skills")) => Some(match argv.get(1) {
+            Some(sub) if !sub.starts_with('-') => format!("{group} {sub}"),
+            _ => group.to_string(),
         }),
         other => other.map(str::to_string),
     }

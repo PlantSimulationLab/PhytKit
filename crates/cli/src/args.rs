@@ -117,6 +117,10 @@ pub const ERROR_CODES: &[(&str, &str)] = &[
     ),
     ("write_failed", "An --out file couldn't be written"),
     (
+        "already_exists",
+        "pk skills install would replace a folder it didn't install (pass --force)",
+    ),
+    (
         "invalid_data",
         "A file was read but doesn't hold the data the command needs",
     ),

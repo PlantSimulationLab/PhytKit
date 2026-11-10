@@ -58,6 +58,19 @@ pk.predict("fvcb", {"Vcmax25": 90}, {"Ci": ci, "Q": q, "T": t_kelvin})
 
 Commands return the same structure as `pk`'s JSON, and take the same options as `pk` (`max_iter=400` for `--max-iter 400`). Failures raise `pk.PhytKitError`, with the same `.code`, `.hint` and `.usage` as `pk`'s error object.
 
+## Using PhytKit with an AI coding agent
+
+The package ships an agent skill matched to the installed version. In your project, run
+
+```bash
+pk agent-files          # writes AGENTS.md and CLAUDE.md with PhytKit's guidance
+pk skills install       # or copy the skill into .claude/skills
+```
+
+A file is rewritten only while it starts with the `phytkit-managed-file` marker line;
+delete that line to keep your own edits. `PHYTKIT_AGENT_FILES=0` turns the command off.
+See [Using an AI coding agent](https://plantsimulationlab.github.io/PhytKit/guide/agents/).
+
 ## Tests
 
 - **`cargo test --release`:** unit tests, plus model tests that check every model's predictions, derivatives and fits against values stored in `crates/core/tests/data/model_reference.json`. After changing a model on purpose, run `UPDATE_MODEL_REFERENCE=1 cargo test --release --test model_reference` to rewrite them, and review the difference.

@@ -456,8 +456,18 @@ fn build_info(py: Python<'_>) -> PyResult<Bound<'_, PyDict>> {
     d.set_item("commit", env!("PHYTKIT_GIT_COMMIT"))?;
     d.set_item("dirty", env!("PHYTKIT_GIT_DIRTY") == "true")?;
     d.set_item("build", env!("PHYTKIT_BUILD_KIND"))?;
-    d.set_item("profile", if cfg!(debug_assertions) { "debug" } else { "release" })?;
-    d.set_item("target", format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS))?;
+    d.set_item(
+        "profile",
+        if cfg!(debug_assertions) {
+            "debug"
+        } else {
+            "release"
+        },
+    )?;
+    d.set_item(
+        "target",
+        format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS),
+    )?;
     Ok(d)
 }
 

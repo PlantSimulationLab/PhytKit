@@ -93,7 +93,8 @@ mod tests {
         for (c, _, d) in WARNING_CODES {
             assert!(seen.insert(*c), "duplicate {c}");
             assert!(
-                c.chars().all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_'),
+                c.chars()
+                    .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_'),
                 "{c}"
             );
             assert!(!d.is_empty());

@@ -147,7 +147,7 @@ pub const COMMANDS: &[Command] = &[
             opt("constraint", Kind::Names, None, "Turn on a soft constraint that is off by default"),
             opt("constraints", Kind::Choice(&["none"]), None, "Turn off every soft constraint"),
             opt("weight", Kind::Pairs, None, "Weight for one soft constraint (key=value)"),
-            opt("units", Kind::Choice(&["MPa", "kPa", "bar", "m", "cm"]), Some("MPa"), "Units of water potential; soil only"),
+            opt("units", Kind::Choice(&["MPa", "kPa", "hPa", "bar", "m", "cm"]), Some("MPa"), "Units of water potential; soil only"),
             opt("group-by", Kind::Text("column"), None, "Split one file into a fit per value of this column"),
             opt("survey", Kind::Files, None, "Rescale mode: survey points to rescale A to; photosynthesis only"),
             opt("stat", Kind::Choice(&["mean", "median", "max"]), Some("mean"), "Statistic for rescaling"),
@@ -783,6 +783,24 @@ mod tests {
     }
     fn err(cmd: &str, line: &str) -> CliError {
         parse(command(cmd).unwrap(), &argv(line)).expect_err(line)
+    }
+
+    #[test]
+    fn soil_units_option_matches_the_unit_table() {
+        let units = command("fit")
+            .unwrap()
+            .options
+            .iter()
+            .find(|o| o.name == "units")
+            .unwrap();
+        let Kind::Choice(choices) = units.kind else {
+            panic!("--units is a choice")
+        };
+        let table: Vec<&str> = phytkit_core::hydraulics::SOIL_UNITS
+            .iter()
+            .map(|(l, _)| *l)
+            .collect();
+        assert_eq!(choices, table.as_slice());
     }
 
     #[test]

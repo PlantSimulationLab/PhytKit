@@ -143,6 +143,7 @@ pub const COMMANDS: &[Command] = &[
             opt("set", Kind::Pairs, None, "Starting value, or the value a fixed parameter is held at"),
             opt("max-iter", Kind::Count(1), Some("200"), "Iteration limit"),
             opt("no-constraint", Kind::Names, None, "Turn off one soft constraint"),
+            opt("constraint", Kind::Names, None, "Turn on a soft constraint that is off by default"),
             opt("constraints", Kind::Choice(&["none"]), None, "Turn off every soft constraint"),
             opt("weight", Kind::Pairs, None, "Weight for one soft constraint (key=value)"),
             opt("units", Kind::Choice(&["MPa", "kPa", "bar", "m", "cm"]), Some("MPa"), "Units of water potential; soil only"),
@@ -175,7 +176,7 @@ pub const COMMANDS: &[Command] = &[
         summary: "Solve A, Ci and Cc for each LI-600 reading from its gsw and a photosynthesis parameter set",
         args: &[Arg { name: "file", help: "An LI-600 export, ideally already corrected (.csv, .xlsx, or - for stdin)", required: true, many: false }],
         options: &[
-            opt("model", Kind::Choice(&["fvcb", "fvcbC4", "empiricalA"]), Some("fvcb"), "Photosynthesis model"),
+            opt("model", Kind::Choice(&["fvcb", "fvcbC4", "empiricalA"]), Some("fvcb"), "Photosynthesis model (without it: the model a --params fit JSON was fitted with, else fvcb)"),
             opt("params", Kind::Text("file"), None, "Parameter file: pk fit JSON, a CSV of fitted parameters, a Parameter/Value table, or name = value lines"),
             opt("set", Kind::Pairs, None, "Override one parameter"),
             opt("ca", Kind::Number(Range::Positive), Some("420"), "Ambient CO₂, µmol mol⁻¹"),
@@ -276,6 +277,41 @@ pub fn either(items: &[&str]) -> String {
         [one] => one.to_string(),
         [rest @ .., last] => format!("{} or {last}", rest.join(", ")),
     }
+}
+
+/// A starting value outside the bounds of a parameter that will be fitted: the fitter would
+/// silently clip it, so it's an error. (A fixed parameter may be held anywhere, e.g.
+/// `--set gm=1000000 --fix gm` for an apparent fit.) `flag` is `--set` or `init`, and
+/// `fix_hint` how to hold the parameter instead.
+pub fn start_out_of_bounds(
+    m: &dyn phytkit_core::Model,
+    flag: &str,
+    name: &str,
+    value: f64,
+    fix_hint: &str,
+) -> Option<CliError> {
+    let spec = m.params().iter().find(|p| p.name == name)?;
+    let (lb, ub) = (
+        spec.lb.unwrap_or(f64::NEG_INFINITY),
+        spec.ub.unwrap_or(f64::INFINITY),
+    );
+    if value >= lb && value <= ub {
+        return None;
+    }
+    let v = numbers::text(value);
+    Some(
+        CliError::usage(
+            "invalid_value",
+            format!(
+                "{flag} {name}={v} is outside {name}'s bounds ({} to {}), so the fit can't start there.",
+                numbers::text(lb),
+                numbers::text(ub)
+            ),
+        )
+        .hint(format!(
+            "Give a starting value within the bounds, or {fix_hint} to hold {name} at {v} without fitting it."
+        )),
+    )
 }
 
 /// A parameter the model doesn't have. `label` is how it was given: `--fix`, `init`.

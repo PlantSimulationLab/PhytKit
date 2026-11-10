@@ -151,3 +151,34 @@ def test_keyword_options_become_pk_flags():
 def test_keyword_options_reach_the_fit():
     res = pk.fit("photosynthesis", LEAF, model="fvcb", fix=["gm", "alphaG"], set={"Vcmax25": 90.0}, max_iter=3)
     assert res["iterations"] <= 3 and "gm" not in res["fitted"] and "alphaG" not in res["fitted"]
+
+
+def test_array_inputs_must_be_finite_aligned_and_in_range():
+    psi = [-0.001 * 1.6**i for i in range(25)]
+    y = [0.3] * 25
+    y[3] = float("nan")
+    raises("invalid_value", pk.fit_arrays, "vanGenuchten", {"psi": psi}, y)
+    e = raises("invalid_value", pk.fit_many, "vanGenuchten", [({"psi": psi}, [0.3] * 25), ({"psi": psi}, y)])
+    assert str(e).startswith("datasets[1]:")
+    x = {"Ci": [100.0, 200.0, 300.0, 400.0], "Q": [1500.0] * 4, "T": [298.15] * 4}
+    raises("invalid_value", pk.fit_arrays, "fvcb", x, [5.0, 10.0, 15.0, 18.0], curves=[[0, 1, 2, 3, 4]])
+    raises("invalid_value", pk.predict, "fvcb", {}, {"Ci": [100.0, 200.0], "Q": [1500.0], "T": [298.15, 298.15]})
+
+
+def test_numpy_style_floats_in_dict_options():
+    from phytkit import _flags
+
+    class F(float):  # NumPy scalars subclass float and repr as "np.float64(...)"
+        def __repr__(self):
+            return f"np.float64({float(self)})"
+
+    assert _flags({"set": {"gm": F(0.3)}}) == ["--set", "gm=0.3"]
+
+
+def test_out_of_bounds_starting_values_are_errors():
+    x = {"P": [-0.5, -1.0, -2.0, -3.0, -4.0]}
+    y = [0.95, 0.9, 0.5, 0.15, 0.05]
+    e = raises("invalid_value", pk.fit_arrays, "vulnerability", x, y, init={"P50": 3.0})
+    assert "leave it out of fit_params" in e.hint
+    res = pk.fit_arrays("vulnerability", x, y, init={"P50": 3.0}, fit_params=["Kmax", "S"])
+    assert res["params"]["P50"] == 3.0

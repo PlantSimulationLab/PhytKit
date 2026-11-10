@@ -281,6 +281,18 @@ fn bisect(f: &dyn Fn(f64) -> f64, mut lo: f64, mut hi: f64) -> Option<f64> {
 const C_LO: f64 = 0.01;
 const C_HI: f64 = 2000.0;
 
+/// Solve `f(c) = 0` for c in [C_LO, hi], where hi starts at max(2000, 2·Ca) and doubles
+/// (up to 1e6) until it brackets the root. A positive A puts Ci below Ca, but a negative A
+/// with a small conductance can put it far above, and Ca itself can exceed 2000.
+fn solve_c(f: &dyn Fn(f64) -> f64, ca: f64) -> Option<f64> {
+    let flo = f(C_LO);
+    let mut hi = numbers::max(C_HI, 2.0 * ca);
+    while hi < 1e6 && f(hi) * flo > 0.0 {
+        hi *= 2.0;
+    }
+    bisect(f, C_LO, hi)
+}
+
 /// Solve A and Ci (and Cc) for one observation.
 pub fn solve_poro_point(
     model: &PoroModel,
@@ -326,7 +338,7 @@ pub fn solve_poro_point(
     let ca = opts.ca;
     if let Some(gm) = model.gm(p) {
         let gtot = (gsc * gm) / (gsc + gm);
-        let Some(cc) = bisect(&|c| a_at(c) - gtot * (ca - c), C_LO, C_HI) else {
+        let Some(cc) = solve_c(&|c| a_at(c) - gtot * (ca - c), ca) else {
             return base;
         };
         let an = gtot * (ca - cc);
@@ -338,7 +350,7 @@ pub fn solve_poro_point(
             ..base
         };
     }
-    let Some(ci) = bisect(&|c| a_at(c) - gsc * (ca - c), C_LO, C_HI) else {
+    let Some(ci) = solve_c(&|c| a_at(c) - gsc * (ca - c), ca) else {
         return base;
     };
     PoroResult {
@@ -418,6 +430,17 @@ fn match_kv_line(line: &str) -> Option<(String, String)> {
     Some((name.to_string(), value_start[..i].to_string()))
 }
 
+/// The model named in a `pk fit` JSON result (`{"model": ..., "params": ...}`), if any.
+pub fn param_text_model(text: &str) -> Option<String> {
+    let t = text.trim();
+    if !t.starts_with('{') {
+        return None;
+    }
+    let obj: serde_json::Value = serde_json::from_str(t).ok()?;
+    obj.get("params")?;
+    obj.get("model")?.as_str().map(str::to_string)
+}
+
 /// Read a parameter set: fitter JSON (`{params: ...}` or flat), a CSV (last row wins),
 /// a two-column Parameter/Value table, or `name = value` lines. Only numeric entries.
 pub fn parse_param_text(text: &str) -> Result<Params, String> {
@@ -431,7 +454,21 @@ pub fn parse_param_text(text: &str) -> Result<Params, String> {
             serde_json::from_str(t).map_err(|e| format!("Invalid JSON: {e}"))?;
         let src = match obj.get("params") {
             Some(p) if p.is_object() => p,
-            _ => &obj,
+            _ => {
+                if let Some(rs) = obj.get("results").and_then(|r| r.as_array()) {
+                    return Err(format!(
+                        "This is a batch fit result with {} fits; give the JSON of a single fit, such as one entry of its \"results\" list.",
+                        rs.len()
+                    ));
+                }
+                if obj.get("ok").is_some() && obj.get("command").is_some() {
+                    return Err(
+                        "This pk output has no \"params\"; give the JSON of a successful pk fit."
+                            .to_string(),
+                    );
+                }
+                &obj
+            }
         };
         if let Some(m) = src.as_object() {
             for (k, v) in m {
@@ -557,4 +594,30 @@ pub fn poro_full_csv(parsed: &PoroParsed, results: &[PoroResult]) -> String {
         );
     }
     out.join("\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn solves_above_2000_ppm_and_in_the_dark() {
+        let m = &PORO_MODELS[0];
+        let p = m.params();
+        let row = |gsw, qamb| PoroRow {
+            gsw,
+            qamb,
+            tleaf: 25.0,
+            etr: f64::NAN,
+        };
+        let opts = |ca| PoroOptions {
+            ca,
+            ..Default::default()
+        };
+        let r = solve_poro_point(m, &p, &row(0.3, 1500.0), &opts(2500.0));
+        assert!(r.ok && r.ci > 2000.0 && r.ci < 2500.0, "{r:?}");
+        // Dark respiration with the floor conductance puts Ci far above Ca.
+        let r = solve_poro_point(m, &p, &row(0.001, 0.0), &opts(420.0));
+        assert!(r.ok && r.a < 0.0 && r.ci > 2000.0, "{r:?}");
+    }
 }

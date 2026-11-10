@@ -3,7 +3,7 @@
 use crate::parse::candidates;
 use crate::table::{write_rows, Table};
 use indexmap::IndexSet;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 const CURVE_ID: &str = "CurveID";
 
@@ -61,6 +61,19 @@ impl Source {
             .position(|h| h == field)
             .map_or(String::new(), |j| Table::cell(row, j).to_string())
     }
+    /// The row's curve ID: the file's CurveID column (matched ignoring case), or the file's
+    /// label when it has none.
+    fn curve_id(&self, row: &[String]) -> String {
+        match self
+            .table
+            .header
+            .iter()
+            .position(|h| h.eq_ignore_ascii_case(CURVE_ID))
+        {
+            Some(j) => Table::cell(row, j).to_string(),
+            None => self.label.clone(),
+        }
+    }
     fn has(&self, field: &str) -> bool {
         self.table
             .header
@@ -97,10 +110,15 @@ fn light_column_warning(sources: &[Source]) -> Option<String> {
     ))
 }
 
-/// Merge `(file name, CSV text)` pairs under one header holding every column. Without a
-/// CurveID column, one is added with each file's label. Existing CurveIDs are kept, but
-/// prefixed with the file label if two files share a value.
+/// Merge `(file name, CSV text)` pairs under one header holding every column. A file without
+/// a CurveID column gets its label as the CurveID. Existing CurveIDs are kept, but prefixed
+/// with the file label if two files share a value. Labels are made unique first, so two files
+/// whose names differ only in the LI-6800 date-and-time prefix stay apart.
 pub fn concat_csvs<N: AsRef<str>, C: AsRef<str>>(sources: &[(N, C)]) -> ConcatResult {
+    let names: Vec<String> = sources
+        .iter()
+        .map(|(n, _)| n.as_ref().to_string())
+        .collect();
     let sources: Vec<Source> = sources
         .iter()
         .map(|(name, csv)| {
@@ -115,27 +133,69 @@ pub fn concat_csvs<N: AsRef<str>, C: AsRef<str>>(sources: &[(N, C)]) -> ConcatRe
             Source { label, table }
         })
         .collect();
+    let mut sources = sources;
+    let mut warnings = Vec::new();
+    // Two files with the same label (say the same log name on two days) would merge into
+    // one curve. Fall back to the full file name for those, then number any still equal.
+    let count = |srcs: &[Source], l: &str| srcs.iter().filter(|s| s.label == l).count();
+    let dup: Vec<usize> = (0..sources.len())
+        .filter(|&i| count(&sources, &sources[i].label) > 1)
+        .collect();
+    if !dup.is_empty() {
+        let shared: IndexSet<String> = dup.iter().map(|&i| sources[i].label.clone()).collect();
+        for &i in &dup {
+            let name = names[i].as_str();
+            sources[i].label = match name.rsplit_once('.') {
+                Some((stem, ext))
+                    if !stem.is_empty() && ext.chars().all(|c| c.is_ascii_alphanumeric()) =>
+                {
+                    stem.to_string()
+                }
+                _ => name.to_string(),
+            };
+        }
+        let mut seen: HashMap<String, usize> = HashMap::new();
+        for s in sources.iter_mut() {
+            let n = seen.entry(s.label.clone()).or_insert(0);
+            *n += 1;
+            if *n > 1 {
+                s.label = format!("{}#{}", s.label, n);
+            }
+        }
+        warnings.push(format!(
+            "Several files share the label {}; they were labelled by their full file names instead, so their curves stay apart.",
+            shared.iter().map(|l| format!("\"{l}\"")).collect::<Vec<_>>().join(", ")
+        ));
+    }
     let id_field = sources
         .iter()
         .flat_map(|s| s.table.header.iter())
         .find(|h| h.eq_ignore_ascii_case(CURVE_ID))
         .cloned();
 
+    let key = id_field.clone().unwrap_or_else(|| CURVE_ID.to_string());
+    // Every spelling of CurveID becomes the one key column.
     let mut header: IndexSet<String> = sources
         .iter()
         .flat_map(|s| s.table.header.iter().filter(|h| !h.is_empty()).cloned())
+        .map(|h| {
+            if h.eq_ignore_ascii_case(CURVE_ID) {
+                key.clone()
+            } else {
+                h
+            }
+        })
         .collect();
-    let key = id_field.clone().unwrap_or_else(|| CURVE_ID.to_string());
     header.insert(key.clone());
 
     // Two files sharing a CurveID value would merge their curves, so prefix them.
-    let namespaced = id_field.as_ref().is_some_and(|f| {
+    let namespaced = id_field.is_some() && {
         let mut seen = HashSet::new();
         sources.iter().any(|s| {
-            let own: HashSet<String> = s.table.rows.iter().map(|r| s.get(r, f)).collect();
+            let own: HashSet<String> = s.table.rows.iter().map(|r| s.curve_id(r)).collect();
             own.into_iter().any(|v| !seen.insert(v))
         })
-    });
+    };
 
     let key_col = header.get_index_of(&key).unwrap();
     let mut ids = HashSet::new();
@@ -143,10 +203,15 @@ pub fn concat_csvs<N: AsRef<str>, C: AsRef<str>>(sources: &[(N, C)]) -> ConcatRe
     for s in &sources {
         for r in &s.table.rows {
             let mut out: Vec<String> = header.iter().map(|f| s.get(r, f)).collect();
-            out[key_col] = match &id_field {
-                None => s.label.clone(),
-                Some(f) if namespaced => format!("{}:{}", s.label, s.get(r, f)),
-                Some(f) => s.get(r, f),
+            let has_own = s
+                .table
+                .header
+                .iter()
+                .any(|h| h.eq_ignore_ascii_case(CURVE_ID));
+            out[key_col] = if namespaced && has_own {
+                format!("{}:{}", s.label, s.curve_id(r))
+            } else {
+                s.curve_id(r)
             };
             ids.insert(out[key_col].clone());
             rows.push(out);
@@ -156,7 +221,10 @@ pub fn concat_csvs<N: AsRef<str>, C: AsRef<str>>(sources: &[(N, C)]) -> ConcatRe
         csv: write_rows(std::iter::once(header.iter().cloned().collect::<Vec<_>>()).chain(rows)),
         curves: ids.len(),
         namespaced,
-        warnings: light_column_warning(&sources).into_iter().collect(),
+        warnings: warnings
+            .into_iter()
+            .chain(light_column_warning(&sources))
+            .collect(),
     }
 }
 
@@ -179,5 +247,30 @@ mod tests {
         let r = concat_csvs(&[("a.csv", "A,CurveID\n1,1\n"), ("b.csv", "A,CurveID\n3,1\n")]);
         assert!(r.namespaced);
         assert_eq!(r.csv, "A,CurveID\n1,a:1\n3,b:1\n");
+    }
+
+    #[test]
+    fn same_label_on_different_days_stays_apart() {
+        let r = concat_csvs(&[
+            ("2026-06-15-1116_aci.csv", "A,Ci\n1,2\n"),
+            ("2026-06-16-0930_aci.csv", "A,Ci\n3,4\n"),
+        ]);
+        assert_eq!(r.curves, 2);
+        assert_eq!(
+            r.csv,
+            "A,Ci,CurveID\n1,2,2026-06-15-1116_aci\n3,4,2026-06-16-0930_aci\n"
+        );
+        assert_eq!(r.warnings.len(), 1);
+        let r = concat_csvs(&[("x/aci.csv", "A\n1\n"), ("x/aci.csv", "A\n3\n")]);
+        assert_eq!(r.curves, 2);
+    }
+
+    #[test]
+    fn curve_id_spelling_and_missing_column() {
+        let r = concat_csvs(&[("a.csv", "A,CurveID\n1,x\n"), ("b.csv", "A,curveid\n3,y\n")]);
+        assert_eq!(r.csv, "A,CurveID\n1,x\n3,y\n");
+        let r = concat_csvs(&[("a.csv", "A,CurveID\n1,x\n"), ("b.csv", "A\n3\n")]);
+        assert_eq!(r.csv, "A,CurveID\n1,x\n3,b\n");
+        assert_eq!(r.curves, 2);
     }
 }

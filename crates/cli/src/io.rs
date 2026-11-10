@@ -1,7 +1,7 @@
 //! Read CSV, .xlsx (first sheet) or an LI-6800 native log.
 
 use crate::args::CliError;
-use phytkit_core::licor::{licor_text_to_csv, xlsx_to_csv};
+use phytkit_core::licor::{licor_text_to_csv, licor_xlsx_to_csv, xlsx_to_csv};
 use std::io::Read;
 
 pub struct LoadedFile {
@@ -64,7 +64,13 @@ pub fn load_file(path: &str) -> Result<LoadedFile, CliError> {
         });
     }
     if path.to_lowercase().ends_with(".xlsx") {
-        let text = xlsx_to_csv(&read_bytes(path)?).map_err(CliError::data)?;
+        // An LI-6800 export loses its header block and units row; any other workbook is
+        // read as its first sheet.
+        let buf = read_bytes(path)?;
+        let text = match licor_xlsx_to_csv(&buf).map_err(CliError::data)? {
+            Some(csv) => csv,
+            None => xlsx_to_csv(&buf).map_err(CliError::data)?,
+        };
         return Ok(LoadedFile {
             name: basename(path),
             text,

@@ -34,8 +34,10 @@ pub const P_ALIASES: &[&str] = &[
     "WP (MPa)",
     "WP(MPa)",
     "Psi_MPa",
+    "ψ_MPa",
     "Psi",
     "psi",
+    "ψ",
     "WP",
     "water_potential",
     "waterpotential",
@@ -48,6 +50,7 @@ pub const P_ALIASES: &[&str] = &[
     "Psi(bar)",
     "WP (bar)",
     "Psi_bar",
+    "ψ_bar",
 ];
 pub const PLC_ALIASES: &[&str] = &[
     "PLC",
@@ -220,6 +223,45 @@ fn find_conductance_field(fields: &[String]) -> Option<String> {
         .cloned()
 }
 
+/// Soil water-potential units: label and factor to MPa. `--units` takes these labels.
+pub const SOIL_UNITS: &[(&str, f64)] = &[
+    ("MPa", 1.0),
+    ("kPa", 0.001),
+    ("hPa", 0.0001),
+    ("bar", 0.1),
+    ("m", 0.00980665),
+    ("cm", 0.0000980665),
+];
+
+/// The unit a soil water-potential column names in its header ("Psi (bar)", "kPa",
+/// "h_cm", ...), as an entry of `SOIL_UNITS`. `None` when the name doesn't say.
+pub fn soil_unit_in_name(field: &str) -> Option<(&'static str, f64)> {
+    let lower = field.to_lowercase();
+    let tokens: Vec<&str> = lower
+        .split(|c: char| !c.is_ascii_alphanumeric())
+        .filter(|t| !t.is_empty())
+        .collect();
+    let label = if lower.contains("mpa") {
+        "MPa"
+    } else if lower.contains("kpa") {
+        "kPa"
+    } else if lower.contains("hpa") || lower.contains("mbar") {
+        "hPa"
+    } else if lower.contains("bar") {
+        "bar"
+    } else if tokens
+        .iter()
+        .any(|t| matches!(*t, "cm" | "cmh2o" | "cmwater"))
+    {
+        "cm"
+    } else if tokens.iter().any(|t| matches!(*t, "m" | "mh2o")) {
+        "m"
+    } else {
+        return None;
+    };
+    SOIL_UNITS.iter().find(|(l, _)| *l == label).copied()
+}
+
 /// A water-potential column named in bar is converted to MPa.
 fn bar_to_mpa(field: &str, vals: &mut [f64], warnings: &mut Vec<String>) {
     if field.to_ascii_lowercase().contains("bar") {
@@ -240,22 +282,39 @@ fn norm(s: &str) -> String {
         .collect()
 }
 
+/// Like `norm`, but keeping non-ASCII letters, so "θ" and "σ" stay distinct instead of
+/// both becoming "".
+fn norm_unicode(s: &str) -> String {
+    s.to_lowercase()
+        .chars()
+        .filter(|c| c.is_alphanumeric())
+        .collect()
+}
+
 struct CsvTable {
     fields: Vec<String>,
     rows: Vec<Vec<String>>,
     /// Column index by name, and by normalized name for loose matching.
     index: IndexMap<String, usize>,
     by_norm: IndexMap<String, String>,
+    by_unicode: IndexMap<String, String>,
 }
 
 impl CsvTable {
     /// The first column matching one of `cands`, ignoring case, spaces and punctuation.
+    /// The first candidate that names a column: matched on `norm_unicode`, then on the ASCII
+    /// `norm` (so "Ψ (MPa)" still matches "MPa"). An empty normalized name never matches.
     fn find_field(&self, cands: &[&str]) -> Option<String> {
         cands.iter().find_map(|c| {
-            self.by_norm
-                .get(&norm(c))
-                .filter(|h| !h.is_empty())
-                .cloned()
+            let (u, a) = (norm_unicode(c), norm(c));
+            let hit = |m: &IndexMap<String, String>, k: &str| {
+                (!k.is_empty())
+                    .then(|| m.get(k))
+                    .flatten()
+                    .filter(|h| !h.is_empty())
+                    .cloned()
+            };
+            hit(&self.by_unicode, &u).or_else(|| hit(&self.by_norm, &a))
         })
     }
     /// The cell in `field` as a number; NaN when missing or not a number.
@@ -283,14 +342,19 @@ fn read_csv(text: &str) -> Result<CsvTable, String> {
     }
     // The first column wins when two normalize to the same name.
     let mut by_norm: IndexMap<String, String> = IndexMap::new();
+    let mut by_unicode: IndexMap<String, String> = IndexMap::new();
     for f in &fields {
         by_norm.entry(norm(f)).or_insert_with(|| f.clone());
+        by_unicode
+            .entry(norm_unicode(f))
+            .or_insert_with(|| f.clone());
     }
     Ok(CsvTable {
         fields,
         rows: table.rows,
         index,
         by_norm,
+        by_unicode,
     })
 }
 
@@ -765,7 +829,8 @@ pub fn parse_soil_retention(text: &str) -> Result<ParsedFitData, String> {
 
     let mut warnings = vec![format!("Using ψ=\"{p_field}\", θ=\"{t_field}\".")];
 
-    bar_to_mpa(&p_field, &mut psi, &mut warnings);
+    // Units are not converted here: the caller applies --units, or the unit the column
+    // names (soil_unit_in_name), so the two can never both apply.
     if numbers::min_of(&psi) >= 0.0 && numbers::max_of(&psi) > 0.0 {
         for v in psi.iter_mut() {
             *v = -*v;
@@ -797,6 +862,18 @@ mod tests {
 
     #[test]
     fn vulnerability_from_plc_and_k() {
+        assert_eq!(soil_unit_in_name("Psi (bar)"), Some(("bar", 0.1)));
+        assert_eq!(soil_unit_in_name("kPa"), Some(("kPa", 0.001)));
+        assert_eq!(soil_unit_in_name("h_cm"), Some(("cm", 0.0000980665)));
+        assert_eq!(soil_unit_in_name("psi_MPa"), Some(("MPa", 1.0)));
+        assert_eq!(soil_unit_in_name("suction"), None);
+        assert_eq!(soil_unit_in_name("matric"), None);
+        let d = parse_soil_retention("h,σ,θ\n1,9,0.4\n10,9,0.3\n").unwrap();
+        assert_eq!(d.mapping["theta"], "θ");
+        let d = parse_soil_retention("ψ,θ\n1,0.4\n10,0.3\n").unwrap();
+        assert_eq!(d.mapping["psi"], "ψ");
+        let d = parse_vulnerability("Ψ (MPa),PLC\n-1,10\n-3,80\n").unwrap();
+        assert_eq!(d.mapping["P"], "Ψ (MPa)");
         let d = parse_vulnerability("Psi (bar),PLC\n2,10\n4,0.5\n").unwrap();
         assert_eq!(d.x["P"], vec![-0.2, -0.4]);
         assert_eq!(d.y, vec![0.9, 0.995]);

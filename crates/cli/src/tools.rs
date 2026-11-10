@@ -32,12 +32,16 @@ pub enum Parser {
 }
 
 pub type Seed = fn(&FitData) -> Params;
+pub type Starts = fn(&FitData) -> Vec<Params>;
 
 pub struct ToolModel {
     pub model: &'static str,
     pub label: &'static str,
     pub parser: Parser,
     pub seed: Option<Seed>,
+    /// Extra starting points to try after the seeded one (partial parameter sets). The fit
+    /// with the lowest rmse is kept. Used where one start can land in a poor local minimum.
+    pub starts: Option<Starts>,
 }
 
 pub struct Tool {
@@ -134,13 +138,70 @@ fn seed_fractal(d: &FitData) -> Params {
     p
 }
 
-const SOIL_UNITS: &[(&str, f64)] = &[
-    ("MPa", 1.0),
-    ("kPa", 0.001),
-    ("bar", 0.1),
-    ("m", 0.00980665),
-    ("cm", 0.0000980665),
-];
+use phytkit_core::hydraulics::SOIL_UNITS;
+
+/// |ψ| at the 10th, 30th, 50th, 70th and 90th percentiles (positive values only): the
+/// scales a retention curve's air-entry parameter is tried at.
+fn psi_scales(d: &FitData) -> Vec<f64> {
+    let mut a: Vec<f64> = abs_psi(d)
+        .into_iter()
+        .filter(|h| *h > 0.0 && h.is_finite())
+        .collect();
+    a.sort_by(|x, y| x.partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal));
+    if a.is_empty() {
+        return vec![];
+    }
+    [0.1, 0.3, 0.5, 0.7, 0.9]
+        .iter()
+        .map(|q| a[((a.len() - 1) as f64 * q).round() as usize])
+        .collect()
+}
+
+/// Every combination of a scale value (from `psi_scales`, mapped by `scale`) and the given
+/// values of other parameters.
+fn grid(d: &FitData, scale: (&str, fn(f64) -> f64), others: &[(&str, &[f64])]) -> Vec<Params> {
+    let mut out: Vec<Params> = psi_scales(d)
+        .into_iter()
+        .map(|h| {
+            let mut p = theta_seed(d);
+            p.insert(scale.0.into(), (scale.1)(h));
+            p
+        })
+        .collect();
+    for (name, values) in others {
+        out = out
+            .into_iter()
+            .flat_map(|p| {
+                values.iter().map(move |v| {
+                    let mut q = p.clone();
+                    q.insert((*name).into(), *v);
+                    q
+                })
+            })
+            .collect();
+    }
+    out
+}
+
+fn starts_van_genuchten(d: &FitData) -> Vec<Params> {
+    grid(d, ("α", |h| 1.0 / h), &[("n", &[1.3, 2.0])])
+}
+
+fn starts_modified_van_genuchten(d: &FitData) -> Vec<Params> {
+    grid(d, ("α1", |h| 1.0 / h), &[("n1", &[1.3, 2.0])])
+}
+
+fn starts_brooks_corey(d: &FitData) -> Vec<Params> {
+    grid(d, ("ψb", |h| h), &[("λ", &[0.3, 1.0])])
+}
+
+fn starts_raats(d: &FitData) -> Vec<Params> {
+    grid(d, ("b*", |h| h), &[("α", &[1.0, 5.0]), ("β", &[2.0, 5.0])])
+}
+
+fn starts_fractal(d: &FitData) -> Vec<Params> {
+    grid(d, ("r_max", |h| 0.2 / h), &[])
+}
 
 pub static TOOLS: &[Tool] = &[
     Tool {
@@ -150,9 +211,9 @@ pub static TOOLS: &[Tool] = &[
         unit_column: None,
         unit_options: None,
         models: &[
-            ToolModel { model: "fvcb", label: "Farquhar–von Caemmerer–Berry (C3)", parser: Parser::Photosynthesis, seed: None },
-            ToolModel { model: "fvcbC4", label: "von Caemmerer (C4)", parser: Parser::Photosynthesis, seed: None },
-            ToolModel { model: "empiricalA", label: "Empirical", parser: Parser::Photosynthesis, seed: None },
+            ToolModel { model: "fvcb", label: "Farquhar–von Caemmerer–Berry (C3)", parser: Parser::Photosynthesis, seed: None, starts: None },
+            ToolModel { model: "fvcbC4", label: "von Caemmerer (C4)", parser: Parser::Photosynthesis, seed: None, starts: None },
+            ToolModel { model: "empiricalA", label: "Empirical", parser: Parser::Photosynthesis, seed: None, starts: None },
         ],
     },
     Tool {
@@ -162,8 +223,8 @@ pub static TOOLS: &[Tool] = &[
         unit_column: None,
         unit_options: None,
         models: &[
-            ToolModel { model: "bta", label: "Buckley–Turnbull–Adams 2012", parser: Parser::Stomatal, seed: Some(seed_bta) },
-            ToolModel { model: "medlyn", label: "Medlyn et al. 2011 (optimality)", parser: Parser::Medlyn, seed: None },
+            ToolModel { model: "bta", label: "Buckley–Turnbull–Adams 2012", parser: Parser::Stomatal, seed: Some(seed_bta), starts: None },
+            ToolModel { model: "medlyn", label: "Medlyn et al. 2011 (optimality)", parser: Parser::Medlyn, seed: None, starts: None },
         ],
     },
     Tool {
@@ -173,8 +234,8 @@ pub static TOOLS: &[Tool] = &[
         unit_column: None,
         unit_options: None,
         models: &[
-            ToolModel { model: "vulnerability", label: "Sigmoidal vulnerability curve", parser: Parser::Vulnerability, seed: Some(seed_vulnerability) },
-            ToolModel { model: "pvcurve", label: "Pressure–volume curve", parser: Parser::PvCurve, seed: None },
+            ToolModel { model: "vulnerability", label: "Sigmoidal vulnerability curve", parser: Parser::Vulnerability, seed: Some(seed_vulnerability), starts: None },
+            ToolModel { model: "pvcurve", label: "Pressure–volume curve", parser: Parser::PvCurve, seed: None, starts: None },
         ],
     },
     Tool {
@@ -184,11 +245,11 @@ pub static TOOLS: &[Tool] = &[
         unit_column: Some("psi"),
         unit_options: Some(SOIL_UNITS),
         models: &[
-            ToolModel { model: "vanGenuchten", label: "van Genuchten", parser: Parser::Soil, seed: Some(theta_seed) },
-            ToolModel { model: "modifiedVanGenuchten", label: "modified van Genuchten", parser: Parser::Soil, seed: Some(theta_seed) },
-            ToolModel { model: "raats", label: "Raats superclass", parser: Parser::Soil, seed: Some(seed_raats) },
-            ToolModel { model: "brooksCorey", label: "Brooks–Corey", parser: Parser::Soil, seed: Some(seed_brooks_corey) },
-            ToolModel { model: "fractalSWRC", label: "fractal (Li et al. 2025)", parser: Parser::Soil, seed: Some(seed_fractal) },
+            ToolModel { model: "vanGenuchten", label: "van Genuchten", parser: Parser::Soil, seed: Some(theta_seed), starts: Some(starts_van_genuchten) },
+            ToolModel { model: "modifiedVanGenuchten", label: "modified van Genuchten", parser: Parser::Soil, seed: Some(theta_seed), starts: Some(starts_modified_van_genuchten) },
+            ToolModel { model: "raats", label: "Raats superclass", parser: Parser::Soil, seed: Some(seed_raats), starts: Some(starts_raats) },
+            ToolModel { model: "brooksCorey", label: "Brooks–Corey", parser: Parser::Soil, seed: Some(seed_brooks_corey), starts: Some(starts_brooks_corey) },
+            ToolModel { model: "fractalSWRC", label: "fractal (Li et al. 2025)", parser: Parser::Soil, seed: Some(seed_fractal), starts: Some(starts_fractal) },
         ],
     },
 ];

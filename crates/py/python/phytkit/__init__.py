@@ -34,7 +34,9 @@ def _flags(options: Mapping[str, Any]) -> list[str]:
             out.append(flag)
         elif isinstance(value, Mapping):
             for k, v in value.items():
-                out += [flag, f"{k}={v!r}" if isinstance(v, float) else f"{k}={v}"]
+                # repr(float(v)) keeps full precision; float() also turns NumPy scalars,
+                # whose repr is "np.float64(90.0)", into plain floats.
+                out += [flag, f"{k}={float(v)!r}" if isinstance(v, float) else f"{k}={v}"]
         elif isinstance(value, (list, tuple)):
             # Repeatable flags (--survey, --no-constraint) take one value each.
             for v in value:

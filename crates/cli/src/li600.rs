@@ -9,8 +9,8 @@ use phytkit_core::li600::{
 use phytkit_core::model::Params;
 use phytkit_core::numbers::{self, json as num};
 use phytkit_core::poro::{
-    parse_param_text, parse_poro_file, poro_columns_csv, poro_full_csv, solve_poro_a, PoroModel,
-    PoroOptions, DEFAULT_MIN_GSW, PORO_MODELS,
+    param_text_model, parse_param_text, parse_poro_file, poro_columns_csv, poro_full_csv,
+    solve_poro_a, PoroModel, PoroOptions, DEFAULT_MIN_GSW, PORO_MODELS,
 };
 use serde_json::{json, Value};
 
@@ -114,8 +114,28 @@ fn resolve_params(
     let pfile = args.str("params")?;
     if let Some(pf) = &pfile {
         let text = load_file(pf)?.text;
+        if let Some(fitted) = param_text_model(&text).filter(|f| f != model.name) {
+            return Err(CliError::usage(
+                "invalid_combination",
+                format!(
+                    "--params {pf} was fitted with {fitted}, but the estimate uses {}.",
+                    model.name
+                ),
+            )
+            .hint(if PORO_MODELS.iter().any(|m| m.name == fitted) {
+                format!("Add --model {fitted}, or leave --model out to use the model the file was fitted with.")
+            } else {
+                format!(
+                    "pk li600 estimate can't use {fitted}. Models: {}.",
+                    PORO_MODELS.iter().map(|m| m.name).collect::<Vec<_>>().join(", ")
+                )
+            }));
+        }
         let found = parse_param_text(&text)
             .map_err(|e| CliError::data(format!("--params {pf}: {e}")).hint(PARAMS_HINT))?;
+        if found.is_empty() {
+            return Err(CliError::data(format!("No parameters found in {pf}.")).hint(PARAMS_HINT));
+        }
         for (k, v) in &found {
             if known.contains(&k.as_str()) {
                 params.insert(k.clone(), *v);
@@ -123,8 +143,13 @@ fn resolve_params(
                 ignored.push(k.clone());
             }
         }
-        if found.is_empty() {
-            return Err(CliError::data(format!("No parameters found in {pf}.")).hint(PARAMS_HINT));
+        if ignored.len() == found.len() {
+            return Err(CliError::data(format!(
+                "None of the parameters in {pf} ({}) belong to {}.",
+                ignored.join(", "),
+                model.name
+            ))
+            .hint(PARAMS_HINT));
         }
     }
     for (k, v) in args.kv("set")? {
@@ -140,7 +165,16 @@ fn resolve_params(
 
 pub fn estimate(args: &ParsedArgs) -> Result<Output> {
     let path = &args.positional[0];
-    let model_name = args.str("model")?.unwrap_or_else(|| "fvcb".into());
+    // Without --model, use the model a pk fit JSON was fitted with, if it's one we can use.
+    let model_name = match args.str("model")? {
+        Some(m) => m,
+        None => match args.str("params")? {
+            Some(pf) => param_text_model(&load_file(&pf)?.text)
+                .filter(|f| PORO_MODELS.iter().any(|m| m.name == f))
+                .unwrap_or_else(|| "fvcb".into()),
+            None => "fvcb".into(),
+        },
+    };
     let (model, params, ignored, source) = resolve_params(args, &model_name)?;
     let ca = args.num("ca", 420.0)?;
     let absorptance = args.num("absorptance", 0.85)?;
@@ -167,6 +201,14 @@ pub fn estimate(args: &ParsedArgs) -> Result<Output> {
         return Ok(Output::Raw(poro_columns_csv(&results)));
     }
     let gm = model.gm(&params);
+    let mut warnings = parsed.warnings.clone();
+    if ok.len() < parsed.n {
+        warnings.push(format!(
+            "{} of {} reading(s) could not be solved and are left out of the summary.",
+            parsed.n - ok.len(),
+            parsed.n
+        ));
+    }
     let a: Vec<f64> = ok.iter().map(|r| r.a).collect();
     let ci: Vec<f64> = ok.iter().map(|r| r.ci).collect();
     let param_json: serde_json::Map<String, Value> =
@@ -189,7 +231,7 @@ pub fn estimate(args: &ParsedArgs) -> Result<Output> {
             "meanCi": num(numbers::round_to(mean(&ci), 2)),
             "meanCiCa": num(numbers::round_to(mean(&ci) / ca, 4))
         },
-        "warnings": parsed.warnings,
+        "warnings": warnings,
         "out": out
     }));
     if args.bool("rows", false) {

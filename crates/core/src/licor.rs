@@ -42,8 +42,11 @@ pub fn xlsx_to_csv(buf: &[u8]) -> Result<String, String> {
     xlsx::to_csv(buf)
 }
 
-/// An LI-6800 `.xlsx` export: the "Measurements" sheet, or the first sheet.
-pub fn parse_licor_xlsx(buf: &[u8]) -> Result<ParsedDataset, String> {
+/// An LI-6800 `.xlsx` export reduced to a plain CSV: the "Measurements" sheet (or the first
+/// sheet), from the column-name row holding "A" and "Ci", without the units row. `None` when
+/// the workbook isn't laid out like an export (no such row, or it is the sheet's first row, as
+/// in an ordinary table), so the caller can read it as a plain workbook instead.
+pub fn licor_xlsx_to_csv(buf: &[u8]) -> Result<Option<String>, String> {
     let names = xlsx::sheet_names(buf)?;
     let sheet = names
         .iter()
@@ -54,10 +57,24 @@ pub fn parse_licor_xlsx(buf: &[u8]) -> Result<ParsedDataset, String> {
         .iter()
         .map(|r| r.iter().map(xlsx::cell_text).collect())
         .collect();
-    let csv = licor_rows_to_csv(&text, |i, j| cells[i].get(j).and_then(xlsx::cell_number).is_some()).ok_or(
-        "Could not find the LI-6800 column header (looked for a row with both 'A' and 'Ci'). Is this a standard LI-6800 logfile?",
-    )?;
-    parse_csv(&csv)
+    let header_idx = text
+        .iter()
+        .position(|r| r.iter().any(|c| c == "A") && r.iter().any(|c| c == "Ci"));
+    if !matches!(header_idx, Some(i) if i > 0) {
+        return Ok(None);
+    }
+    Ok(licor_rows_to_csv(&text, |i, j| {
+        cells[i].get(j).and_then(xlsx::cell_number).is_some()
+    }))
+}
+
+/// A photosynthesis `.xlsx`: an LI-6800 export (see `licor_xlsx_to_csv`), or else the first
+/// sheet read as an ordinary table with one header row.
+pub fn parse_licor_xlsx(buf: &[u8]) -> Result<ParsedDataset, String> {
+    match licor_xlsx_to_csv(buf)? {
+        Some(csv) => parse_csv(&csv),
+        None => parse_csv(&xlsx::to_csv(buf)?),
+    }
 }
 
 /// An LI-6800 native log (a `[Header]` block, then `[Data]`) as CSV; `None` if `text`

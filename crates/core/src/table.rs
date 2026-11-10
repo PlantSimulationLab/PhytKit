@@ -1,5 +1,6 @@
 //! Reading and writing CSV text. The delimiter (comma, tab, semicolon or pipe) is
-//! detected from the first rows, and rows with only blank cells are skipped.
+//! detected from the first rows, and rows with only blank cells are skipped. In files not
+//! delimited by commas, decimal commas ("1,5") are read as decimal points.
 
 const DELIMITERS: [u8; 4] = *b",\t;|";
 
@@ -15,8 +16,18 @@ fn is_blank(row: &[String]) -> bool {
     row.iter().all(|c| c.trim().is_empty())
 }
 
-/// The delimiter that splits the first rows into the same number of fields, preferring
-/// the one that gives the most fields; comma if none does.
+/// Fields up to the last non-blank one, so trailing delimiters don't count.
+fn used_fields(r: &csv::StringRecord) -> usize {
+    r.iter()
+        .enumerate()
+        .filter(|(_, c)| !c.trim().is_empty())
+        .last()
+        .map_or(0, |(i, _)| i + 1)
+}
+
+/// The delimiter that splits the header into the most fields (at least two) while at least
+/// four in five of the first data rows have that many fields too, ignoring trailing empty
+/// fields (instrument exports often end rows with a delimiter); comma if none does.
 pub fn detect_delimiter(text: &str) -> u8 {
     let mut best = (b',', 1usize);
     for &d in &DELIMITERS {
@@ -24,22 +35,62 @@ pub fn detect_delimiter(text: &str) -> u8 {
             .records()
             .filter_map(Result::ok)
             .filter(|r| r.iter().any(|c| !c.trim().is_empty()))
-            .take(10)
-            .map(|r| r.len())
+            .take(11)
+            .map(|r| used_fields(&r))
             .collect();
-        if let Some(&n) = counts.first() {
-            if n > best.1 && counts.iter().all(|&c| c == n) {
-                best = (d, n);
-            }
+        let Some((&n, data)) = counts.split_first() else {
+            continue;
+        };
+        let agree = data.iter().filter(|&&c| c == n).count();
+        if n > best.1 && (data.is_empty() || agree * 5 >= data.len() * 4) {
+            best = (d, n);
         }
     }
     best.0
 }
 
+/// A number written with a decimal comma, such as "1,5", "-0,25" or "2,5e-3".
+fn is_decimal_comma(s: &str) -> bool {
+    let s = s.trim();
+    let s = s.strip_prefix(['-', '+']).unwrap_or(s);
+    let (mantissa, exp) = match s.find(['e', 'E']) {
+        Some(i) => (&s[..i], Some(&s[i + 1..])),
+        None => (s, None),
+    };
+    let Some((int, frac)) = mantissa.split_once(',') else {
+        return false;
+    };
+    let digits = |t: &str| !t.is_empty() && t.bytes().all(|b| b.is_ascii_digit());
+    (int.is_empty() || digits(int))
+        && digits(frac)
+        && exp.is_none_or(|e| digits(e.strip_prefix(['-', '+']).unwrap_or(e)))
+}
+
+/// A number written with a decimal point and digits after it, such as "1.5".
+fn is_decimal_point(s: &str) -> bool {
+    let s = s.trim();
+    s.contains('.') && !s.contains(',') && s.parse::<f64>().is_ok()
+}
+
 /// Every non-blank row, with the delimiter detected.
 pub fn read_rows(text: &str) -> Vec<Vec<String>> {
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
-    read_rows_with(text, detect_delimiter(text))
+    let d = detect_delimiter(text);
+    let mut rows = read_rows_with(text, d);
+    // Decimal commas: always in semicolon files (the European convention), and in tab or
+    // pipe files when no cell uses a decimal point.
+    let convert = d == b';'
+        || (d != b','
+            && !rows.iter().flatten().any(|c| is_decimal_point(c))
+            && rows.iter().flatten().any(|c| is_decimal_comma(c)));
+    if convert {
+        for c in rows.iter_mut().flatten() {
+            if is_decimal_comma(c) {
+                *c = c.trim().replacen(',', ".", 1);
+            }
+        }
+    }
+    rows
 }
 
 /// Every non-blank row, split on `delimiter`.
@@ -132,7 +183,16 @@ mod tests {
             vec![vec!["a", "b"], vec!["1", "2"], vec!["3", "4"]]
         );
         assert_eq!(read_rows("a\tb\n1\t2\n")[1], vec!["1", "2"]);
-        assert_eq!(read_rows("a;b\n1,5;2\n")[1], vec!["1,5", "2"]);
+        assert_eq!(read_rows("a;b\n1,5;2\n")[1], vec!["1.5", "2"]);
+        assert_eq!(read_rows("a;b\n-0,25;x,y\n")[1], vec!["-0.25", "x,y"]);
+        // Trailing delimiters and an occasional short row don't defeat detection.
+        assert_eq!(
+            read_rows("A\tCi\tQ\n1\t2\t3\t\n4\t5\t6\t\n")[1][..3],
+            ["1", "2", "3"]
+        );
+        assert_eq!(read_rows("a\tb\n1,5\t2\n")[1], vec!["1.5", "2"]);
+        assert_eq!(read_rows("a\tb\n1,5\t2.5\n")[1], vec!["1,5", "2.5"]);
+        assert_eq!(read_rows("a,b\n\"1,5\",2\n")[1], vec!["1,5", "2"]);
         assert_eq!(read_rows("\u{feff}\"x, y\",z\n")[0], vec!["x, y", "z"]);
     }
 

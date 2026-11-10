@@ -190,6 +190,28 @@ fn options(
     let init = params(init)?;
     check_names(m, "fit_params", fit_params.iter().flatten().cloned())?;
     check_names(m, "init", init.keys().cloned())?;
+    let fitted: Vec<String> = match &fit_params {
+        Some(f) => f.clone(),
+        None => m
+            .params()
+            .iter()
+            .filter(|p| !p.fixed)
+            .map(|p| p.name.to_string())
+            .collect(),
+    };
+    for (k, v) in &init {
+        if fitted.contains(k) {
+            if let Some(e) = phytkit_cli::options::start_out_of_bounds(
+                m,
+                "init",
+                k,
+                *v,
+                "leave it out of fit_params",
+            ) {
+                return Err(fail(e));
+            }
+        }
+    }
     check_constraints(m, "constraints", constraints.iter().flatten().cloned())?;
     check_constraints(
         m,
@@ -213,9 +235,17 @@ fn options(
     })
 }
 
-/// Every model input is present, and (with `y`) has one value per observation.
-fn check_inputs(m: &dyn phytkit_core::Model, x: &Columns, y: Option<&[f64]>) -> PyResult<()> {
+/// Every model input is present, the input columns have the same length, and (with `y`)
+/// they have one value per observation and every value is finite. `at` prefixes messages
+/// (for example "datasets[3]: ") so a bad dataset in `fit_many` can be found.
+fn check_inputs(
+    m: &dyn phytkit_core::Model,
+    x: &Columns,
+    y: Option<&[f64]>,
+    at: &str,
+) -> PyResult<()> {
     let inputs = m.inputs();
+    let mut first: Option<(&str, usize)> = None;
     for name in inputs {
         match x.get(*name) {
             None => {
@@ -243,7 +273,7 @@ fn check_inputs(m: &dyn phytkit_core::Model, x: &Columns, y: Option<&[f64]>) -> 
                         CliError::usage(
                             "invalid_value",
                             format!(
-                                "x[\"{name}\"] has {} values but y has {}.",
+                                "{at}x[\"{name}\"] has {} values but y has {}.",
                                 c.len(),
                                 y.len()
                             ),
@@ -251,7 +281,57 @@ fn check_inputs(m: &dyn phytkit_core::Model, x: &Columns, y: Option<&[f64]>) -> 
                         .hint("Give one value per observation in every column and in y."),
                     ));
                 }
+                match first {
+                    Some((f, n)) if n != c.len() => {
+                        return Err(fail(
+                            CliError::usage(
+                                "invalid_value",
+                                format!(
+                                    "{at}x[\"{name}\"] has {} values but x[\"{f}\"] has {n}.",
+                                    c.len()
+                                ),
+                            )
+                            .hint("Give every input column the same number of values."),
+                        ));
+                    }
+                    None => first = Some((name, c.len())),
+                    _ => {}
+                }
+                if y.is_some() {
+                    if let Some(i) = c.iter().position(|v| !v.is_finite()) {
+                        return Err(fail(not_finite(at, &format!("x[\"{name}\"]"), i, c[i])));
+                    }
+                }
             }
+        }
+    }
+    if let Some(y) = y {
+        if let Some(i) = y.iter().position(|v| !v.is_finite()) {
+            return Err(fail(not_finite(at, "y", i, y[i])));
+        }
+    }
+    Ok(())
+}
+
+fn not_finite(at: &str, what: &str, i: usize, v: f64) -> CliError {
+    CliError::usage(
+        "invalid_value",
+        format!("{at}{what}[{i}] is {v}; every value must be a finite number."),
+    )
+    .hint("Drop the rows with missing or infinite values before fitting.")
+}
+
+/// Every index in `curves` points at a row of the data.
+fn check_curves(curves: Option<&Vec<Vec<usize>>>, n: usize) -> PyResult<()> {
+    for (c, rows) in curves.into_iter().flatten().enumerate() {
+        if let Some(&i) = rows.iter().find(|&&i| i >= n) {
+            return Err(fail(
+                CliError::usage(
+                    "invalid_value",
+                    format!("curves[{c}] has row index {i}, but there are only {n} rows."),
+                )
+                .hint("Row indices in curves are 0-based and must be less than len(y)."),
+            ));
         }
     }
     Ok(())
@@ -279,7 +359,8 @@ fn fit_arrays<'py>(
 ) -> PyResult<Bound<'py, PyDict>> {
     let m = model(model_name)?;
     let cols = columns(x)?;
-    check_inputs(m, &cols, Some(&y))?;
+    check_inputs(m, &cols, Some(&y), "")?;
+    check_curves(curves.as_ref(), y.len())?;
     let opts = options(
         m,
         fit_params,
@@ -311,9 +392,9 @@ fn fit_many<'py>(
 ) -> PyResult<Bound<'py, PyList>> {
     let m = model(model_name)?;
     let mut data = Vec::with_capacity(datasets.len());
-    for (x, y) in &datasets {
+    for (i, (x, y)) in datasets.iter().enumerate() {
         let cols = columns(x)?;
-        check_inputs(m, &cols, Some(y))?;
+        check_inputs(m, &cols, Some(y), &format!("datasets[{i}]: "))?;
         data.push((cols, y.clone()));
     }
     let opts = options(
@@ -355,7 +436,7 @@ fn predict(
     check_names(m, "params", given.keys().cloned())?;
     p.extend(given);
     let cols = columns(x)?;
-    check_inputs(m, &cols, None)?;
+    check_inputs(m, &cols, None, "")?;
     Ok(m.predict(&p, &cols))
 }
 

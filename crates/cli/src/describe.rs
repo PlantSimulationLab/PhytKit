@@ -20,7 +20,7 @@ pub fn describe_model(name: &str) -> Result<Value> {
     let constraints: Vec<Value> = m
         .constraints()
         .iter()
-        .map(|c| json!({ "key": c.key, "label": c.label, "weight": c.weight, "description": c.description, "perCurve": c.per_curve }))
+        .map(|c| json!({ "key": c.key, "label": c.label, "weight": c.weight, "description": c.description, "perCurve": c.per_curve, "defaultOn": c.default_on }))
         .collect();
     Ok(
         json!({ "name": m.name(), "inputs": m.inputs(), "params": params, "constraints": constraints, "latex": m.latex() }),
@@ -49,12 +49,12 @@ pub fn describe(args: &ParsedArgs) -> Result<Obj> {
         "li600": {
             "correct": {
                 "description": "Rizzo & Bailey (2025) energy-balance correction of LI-600 gsw",
-                "options": ["sidedness (1)", "thermal-conductance (0.007)"]
+                "options": option_summary("li600 correct")
             },
             "estimate": {
                 "description": "Solve A, Ci, Cc from LI-600 gsw + a photosynthesis parameter set",
                 "models": estimate_models,
-                "options": ["model (fvcb)", "params <file>", "set k=v", "ca (420)", "absorptance (0.85)"]
+                "options": option_summary("li600 estimate")
             }
         },
         "concat": { "description": "Merge LI-6800 logs / CSVs under one header with a CurveID per file" },
@@ -66,4 +66,20 @@ pub fn describe(args: &ParsedArgs) -> Result<Obj> {
             "codes": crate::args::ERROR_CODES.iter().map(|(c, d)| json!({ "code": c, "description": d })).collect::<Vec<_>>()
         }
     })))
+}
+
+/// A command's options as "name (default)" or "name", from the COMMANDS table (the full
+/// detail is in the `commands` section).
+fn option_summary(name: &str) -> Vec<String> {
+    crate::options::command(name)
+        .map(|c| {
+            c.options
+                .iter()
+                .map(|o| match o.default {
+                    Some(d) => format!("{} ({d})", o.name),
+                    None => o.name.to_string(),
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }

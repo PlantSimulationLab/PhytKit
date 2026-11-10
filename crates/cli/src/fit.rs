@@ -49,19 +49,21 @@ struct Source {
     text: Option<String>,
 }
 
-fn load_photosynthesis(path: &str) -> Result<(String, FitData)> {
+fn load_photosynthesis(path: &str) -> Result<(String, FitData, Option<&'static str>)> {
     let data_error = |e: String| CliError::data(e).hint(DATA_HINT);
     if path.to_lowercase().ends_with(".xlsx") {
         let buf = crate::io::read_bytes(path)?;
         return Ok((
             basename(path),
             crate::tools::parse_licor_xlsx_data(&buf).map_err(data_error)?,
+            Some("xlsx"),
         ));
     }
     let f = load_file(path)?;
     Ok((
         f.name,
         crate::tools::parse_with(Parser::Photosynthesis, &f.text).map_err(data_error)?,
+        f.converted,
     ))
 }
 
@@ -95,12 +97,14 @@ fn load_for(tool: &'static Tool, src: &Source, model_name: Option<&str>) -> Resu
                 })
                 .map_err(data_error));
         }
-        return Ok(load_photosynthesis(&src.path).map(|(name, data)| Loaded {
-            name,
-            data,
-            entry,
-            converted: None,
-        }));
+        return Ok(
+            load_photosynthesis(&src.path).map(|(name, data, converted)| Loaded {
+                name,
+                data,
+                entry,
+                converted,
+            }),
+        );
     }
     let f: LoadedFile = match &src.text {
         Some(t) => LoadedFile {
@@ -209,8 +213,15 @@ fn build_spec(
         }
     }
     let set = args.kv("set")?;
-    for (k, _) in &set {
+    for (k, v) in &set {
         check(k, "set")?;
+        if fit_params.contains(k) {
+            if let Some(e) =
+                crate::options::start_out_of_bounds(m, "--set", k, *v, &format!("add --fix {k}"))
+            {
+                return Err(e);
+            }
+        }
     }
     for (k, v) in set {
         init.insert(k, v);
@@ -218,7 +229,7 @@ fn build_spec(
     let cons = m.constraints();
     let (mut constraints, mut weights) = (None, None);
     if cons.is_empty() {
-        if let Some(flag) = ["no-constraint", "weight", "constraints"]
+        if let Some(flag) = ["no-constraint", "constraint", "weight", "constraints"]
             .into_iter()
             .find(|f| args.flags.contains_key(*f))
         {
@@ -230,21 +241,33 @@ fn build_spec(
         }
     } else {
         let off = args.list("no-constraint");
+        let extra = args.list("constraint");
         let all = args.str("constraints")?;
         let keys: Vec<&str> = cons.iter().map(|c| c.key).collect();
-        for k in &off {
-            if !keys.contains(&k.as_str()) {
-                return Err(unknown_constraint("--no-constraint", k, m.name(), &keys));
+        for (flag, list) in [("--no-constraint", &off), ("--constraint", &extra)] {
+            for k in list {
+                if !keys.contains(&k.as_str()) {
+                    return Err(unknown_constraint(flag, k, m.name(), &keys));
+                }
             }
         }
-        constraints = Some(if all.as_deref() == Some("none") {
-            vec![]
-        } else {
-            keys.iter()
-                .filter(|k| !off.iter().any(|o| o == *k))
-                .map(|k| k.to_string())
-                .collect()
-        });
+        if let Some(k) = extra.iter().find(|k| off.contains(k)) {
+            return Err(CliError::usage(
+                "invalid_combination",
+                format!("--constraint {k} and --no-constraint {k} contradict each other."),
+            )
+            .hint("Give the constraint to only one of them."));
+        }
+        let none = all.as_deref() == Some("none");
+        constraints = Some(
+            cons.iter()
+                .filter(|c| {
+                    let k = c.key.to_string();
+                    extra.contains(&k) || (!none && c.default_on && !off.contains(&k))
+                })
+                .map(|c| c.key.to_string())
+                .collect(),
+        );
         let w = args.kv("weight")?;
         for (k, _) in &w {
             if !keys.contains(&k.as_str()) {
@@ -298,6 +321,7 @@ fn params_json(p: &Params) -> Value {
 struct Summary {
     obj: Obj,
     file: String,
+    model: String,
     n: usize,
     r2: f64,
     rmse: f64,
@@ -325,11 +349,11 @@ fn summarize(
     let rounded: Params = r
         .params
         .iter()
-        .map(|(k, v)| (k.clone(), numbers::round_to(*v, 6)))
+        .map(|(k, v)| (k.clone(), numbers::round_fit(*v)))
         .collect();
     let derived: Option<Params> = m.derived(&r.params).map(|d| {
         d.into_iter()
-            .map(|(k, v)| (k, numbers::round_to(v, 6)))
+            .map(|(k, v)| (k, numbers::round_fit(v)))
             .collect()
     });
     let mut o = object(json!({
@@ -339,8 +363,8 @@ fn summarize(
         "model": m.name(),
         "n": data.y.len(),
         "mapping": data.mapping.iter().map(|(k, v)| (k.clone(), json!(v))).collect::<Obj>(),
-        "r2": num(numbers::round_to(r.r2, 6)),
-        "rmse": num(numbers::round_to(r.rmse, 6)),
+        "r2": num(numbers::round_fit(r.r2)),
+        "rmse": num(numbers::round_fit(r.rmse)),
         "iterations": r.iterations,
         "converged": r.converged,
         "fitted": r.fitted,
@@ -370,9 +394,10 @@ fn summarize(
     Summary {
         obj: o,
         file: name.to_string(),
+        model: m.name().to_string(),
         n: data.y.len(),
-        r2: numbers::round_to(r.r2, 6),
-        rmse: numbers::round_to(r.rmse, 6),
+        r2: numbers::round_fit(r.r2),
+        rmse: numbers::round_fit(r.rmse),
         iterations: r.iterations,
         converged: r.converged,
         elapsed: ms.round(),
@@ -394,18 +419,43 @@ fn num_cell(v: f64) -> String {
     cell(numbers::text(v))
 }
 
+/// The batch table. Its parameter and derived columns cover every model in the batch (in the
+/// order the models first appear), and a `model` column is added when the files were fitted
+/// with more than one model, so no file's results are dropped.
 fn batch_csv(rows: &[Summary], errors: &[(String, CliError)], entry: &ToolModel) -> String {
-    let m = model_by_name(entry.model).expect("registered model");
-    let keys: Vec<&str> = m.params().iter().map(|p| p.name).collect();
-    let defaults: Params = m
-        .params()
-        .iter()
-        .map(|p| (p.name.to_string(), p.default))
-        .collect();
-    let dkeys: Vec<String> = m
-        .derived(&defaults)
-        .map(|d| d.keys().cloned().collect())
-        .unwrap_or_default();
+    let mut models: Vec<String> = Vec::new();
+    for r in rows {
+        if !models.contains(&r.model) {
+            models.push(r.model.clone());
+        }
+    }
+    if models.is_empty() {
+        models.push(entry.model.to_string());
+    }
+    let mixed = models.len() > 1;
+    let (mut keys, mut dkeys): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
+    for name in &models {
+        let m = model_by_name(name).expect("registered model");
+        for p in m.params() {
+            if !keys.iter().any(|k| k == p.name) {
+                keys.push(p.name.to_string());
+            }
+        }
+        let defaults: Params = m
+            .params()
+            .iter()
+            .map(|p| (p.name.to_string(), p.default))
+            .collect();
+        for k in m
+            .derived(&defaults)
+            .map(|d| d.into_keys().collect::<Vec<_>>())
+            .unwrap_or_default()
+        {
+            if !dkeys.contains(&k) {
+                dkeys.push(k);
+            }
+        }
+    }
     let mut head: Vec<String> = [
         "file",
         "n_points",
@@ -419,7 +469,10 @@ fn batch_csv(rows: &[Summary], errors: &[(String, CliError)], entry: &ToolModel)
     .iter()
     .map(|s| s.to_string())
     .collect();
-    head.extend(keys.iter().map(|s| s.to_string()));
+    if mixed {
+        head.insert(1, "model".into());
+    }
+    head.extend(keys.iter().cloned());
     head.extend(dkeys.iter().cloned());
     head.push("error".into());
     let mut lines = vec![head.join(",")];
@@ -434,9 +487,12 @@ fn batch_csv(rows: &[Summary], errors: &[(String, CliError)], entry: &ToolModel)
             num_cell(r.elapsed),
             r.rescale_factor.map_or(String::new(), num_cell),
         ];
+        if mixed {
+            c.insert(1, cell(r.model.clone()));
+        }
         c.extend(
             keys.iter()
-                .map(|k| r.params.get(*k).map_or(String::new(), |v| num_cell(*v))),
+                .map(|k| r.params.get(k).map_or(String::new(), |v| num_cell(*v))),
         );
         c.extend(dkeys.iter().map(|k| {
             r.derived
@@ -451,7 +507,7 @@ fn batch_csv(rows: &[Summary], errors: &[(String, CliError)], entry: &ToolModel)
         let mut c = vec![cell(file.clone())];
         c.extend(std::iter::repeat_n(
             String::new(),
-            7 + keys.len() + dkeys.len(),
+            7 + usize::from(mixed) + keys.len() + dkeys.len(),
         ));
         c.push(cell(err.message.clone()));
         lines.push(c.join(","));
@@ -490,7 +546,7 @@ pub fn fit_command(args: &ParsedArgs) -> Result<Output> {
     let tool = find_tool(&args.positional[0])?;
     let files: Vec<String> = args.positional[1..].to_vec();
     let model_name = args.str("model")?;
-    let mut unit_factor = 1.0;
+    let mut unit_given: Option<(&'static str, f64)> = None;
     if let Some(unit) = args.str("units")? {
         let opts = tool.unit_options.ok_or_else(|| {
             let with_units: Vec<&str> = TOOLS
@@ -520,7 +576,7 @@ pub fn fit_command(args: &ParsedArgs) -> Result<Output> {
                     ),
                 )
             })?;
-        unit_factor = u.1;
+        unit_given = Some(*u);
     }
     let survey_paths = args.list("survey");
     let stat_s = args.str("stat")?.unwrap_or_else(|| "mean".into());
@@ -615,17 +671,80 @@ pub fn fit_command(args: &ParsedArgs) -> Result<Output> {
             last_entry = loaded.entry;
             let m = model_by_name(loaded.entry.model).expect("registered model");
             let mut data = loaded.data;
-            if unit_factor != 1.0 {
-                if let Some(c) = tool.unit_column {
+            if let Some(c) = tool.unit_column {
+                // One unit factor, applied once: --units if given, else the unit the
+                // column's name states, else MPa.
+                let named = data
+                    .mapping
+                    .iter()
+                    .find(|(k, _)| k == c)
+                    .and_then(|(_, field)| {
+                        phytkit_core::hydraulics::soil_unit_in_name(field)
+                            .map(|u| (field.clone(), u))
+                    });
+                let (_, factor) = match (unit_given, &named) {
+                    (Some(u), Some((field, n))) if n.0 != u.0 => {
+                        data.warnings.push(format!(
+                            "Column \"{field}\" names {}, but --units {} was given; read it as {}.",
+                            n.0, u.0, u.0
+                        ));
+                        u
+                    }
+                    (Some(u), _) => u,
+                    (None, Some((field, n))) => {
+                        if n.1 != 1.0 {
+                            data.warnings.push(format!(
+                                "Column \"{field}\" is in {} by its name; converted to MPa.",
+                                n.0
+                            ));
+                        }
+                        *n
+                    }
+                    (None, None) => {
+                        data.warnings.push(
+                            "No --units given and the column name doesn't state a unit; ψ read as MPa."
+                                .to_string(),
+                        );
+                        ("MPa", 1.0)
+                    }
+                };
+                if factor != 1.0 {
                     if let Some(v) = data.x.get_mut(c) {
                         for x in v.iter_mut() {
-                            *x *= unit_factor;
+                            *x *= factor;
                         }
                     }
                 }
             }
             let spec = build_spec(loaded.entry, m, &data, args)?;
             let mut result = run_fit(m, &data, &spec);
+            if let Some(starts) = loaded.entry.starts {
+                // Try the extra starting points for parameters that are fitted and weren't
+                // given with --set; keep the best fit (the seeded fit wins ties).
+                let set: Vec<String> = args.kv("set")?.into_iter().map(|(k, _)| k).collect();
+                for start in starts(&data) {
+                    let mut alt = FitSpec {
+                        fit_params: spec.fit_params.clone(),
+                        init: spec.init.clone(),
+                        constraints: spec.constraints.clone(),
+                        weights: spec.weights.clone(),
+                        max_iter: spec.max_iter,
+                    };
+                    for (k, v) in start {
+                        if spec.fit_params.contains(&k) && !set.contains(&k) {
+                            alt.init.insert(k, v);
+                        }
+                    }
+                    let r = run_fit(m, &data, &alt);
+                    let better = r.rmse.is_finite()
+                        && (!result.rmse.is_finite()
+                            || r.rmse < result.rmse * (1.0 - 1e-9)
+                            || (!result.converged && r.converged && r.rmse <= result.rmse));
+                    if better {
+                        result = r;
+                    }
+                }
+            }
             let mut rescale = None;
             let mut factor_out = None;
             if !surveys.is_empty() {

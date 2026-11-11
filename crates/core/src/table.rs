@@ -26,22 +26,30 @@ fn used_fields(r: &csv::StringRecord) -> usize {
 }
 
 /// The delimiter that splits the header into the most fields (at least two) while at least
-/// four in five of the first data rows have that many fields too, ignoring trailing empty
-/// fields (instrument exports often end rows with a delimiter); comma if none does.
+/// four in five of the first data rows agree with it; comma if none does.
+///
+/// The header's width is its fields up to the last non-blank one, so a trailing delimiter
+/// doesn't count. A data row agrees when it has a field for every header column and nothing
+/// beyond them: it may end with a delimiter (instrument exports often do), and its last
+/// cells may be blank (an optional `note` or `CurveID` column left empty).
 pub fn detect_delimiter(text: &str) -> u8 {
     let mut best = (b',', 1usize);
     for &d in &DELIMITERS {
-        let counts: Vec<usize> = reader(text, d)
+        // (fields, fields up to the last non-blank one) per row.
+        let counts: Vec<(usize, usize)> = reader(text, d)
             .records()
             .filter_map(Result::ok)
             .filter(|r| r.iter().any(|c| !c.trim().is_empty()))
             .take(11)
-            .map(|r| used_fields(&r))
+            .map(|r| (r.len(), used_fields(&r)))
             .collect();
-        let Some((&n, data)) = counts.split_first() else {
+        let Some((&(_, n), data)) = counts.split_first() else {
             continue;
         };
-        let agree = data.iter().filter(|&&c| c == n).count();
+        let agree = data
+            .iter()
+            .filter(|&&(raw, used)| raw >= n && used <= n)
+            .count();
         if n > best.1 && (data.is_empty() || agree * 5 >= data.len() * 4) {
             best = (d, n);
         }
@@ -175,6 +183,21 @@ impl Table {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_mostly_blank_last_column_does_not_hide_the_delimiter() {
+        // An optional last column left empty in every row (v0.1.0 read these; a later
+        // change counted the rows one field short and fell back to comma).
+        let tab =
+            "A\tCi\tQabs\tTleaf\tCurveID\tnote\n10\t300\t1500\t25\t1\t\n12\t400\t1500\t25\t1\t\n";
+        assert_eq!(detect_delimiter(tab), b'\t');
+        let semi = "A;Ci;Qabs;Tleaf;note\n10,5;300;1500;25;\n12,5;400;1500;25;\n14;500;1500;25;x\n";
+        assert_eq!(detect_delimiter(semi), b';');
+        // Rows that end with an extra delimiter still agree.
+        assert_eq!(detect_delimiter("A\tCi\n1\t2\t\n3\t4\t\n"), b'\t');
+        // Rows wider than the header don't.
+        assert_eq!(detect_delimiter("A;B\n1;2;3;4\n5;6;7;8\n"), b',');
+    }
 
     #[test]
     fn detects_delimiters_and_skips_blank_rows() {

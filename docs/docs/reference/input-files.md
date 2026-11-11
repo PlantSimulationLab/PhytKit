@@ -2,8 +2,8 @@
 
 Every tool reads CSV files with one header row, LI-6800 native logs, and
 standard input (`-`). The delimiter (comma, tab, semicolon or pipe) is
-detected from the first rows; a trailing delimiter at the end of each row is
-fine. In semicolon files, decimal commas (`1,5`) are read as decimal points,
+detected from the first rows; a trailing delimiter at the end of each row, or a
+last column left blank, is fine. In semicolon files, decimal commas (`1,5`) are read as decimal points,
 and in tab or pipe files too when no value uses a decimal point. The stomatal, hydraulics, soil and LI-600 tools read the
 first sheet of an `.xlsx` workbook. `pk fit photosynthesis` and `pk concat`
 read an LI-6800 `.xlsx` export as described below, and any other workbook as
@@ -67,7 +67,7 @@ the same. Non-ASCII letters count as letters, so `θ` and `σ` are different nam
 
 | Input | Column names tried | Notes |
 |---|---|---|
-| Matric potential | the water-potential names above, plus `matric_potential`, `matric`, `suction`, `tension`, `pressure_head`, `head`, `h`, `kPa`, `hPa`, `cm`, `psi_MPa` | MPa unless `--units` says otherwise. Positive suction is accepted. |
+| Matric potential | the water-potential names above, plus `matric_potential`, `matric`, `suction`, `tension`, `pressure_head`, `head`, `h`, `kPa`, `hPa`, `cm`, `psi_MPa`, and any of `psi`, `ψ`, `WP`, `water_potential`, `matric_potential`, `matric`, `suction`, `tension`, `pressure_head`, `head` or `h` followed by a unit (`kPa`, `hPa`, `mbar`, `bar`, `MPa`, `cm`, `cmH2O`, `m`, `mH2O`), such as `Psi (kPa)` or `h_cm` | Read in the unit the name states, else MPa; `--units` overrides both. Positive suction is accepted. |
 | Water content | `theta`, `θ`, `VWC`, `vwc`, `theta_v`, `SWC`, `swc`, `volumetric_water_content`, `water_content`, `moisture`, `VMC`, `WC` | Fraction, or a percentage (above 1.5) |
 
 ## LI-600 files

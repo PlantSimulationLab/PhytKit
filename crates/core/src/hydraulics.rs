@@ -151,13 +151,40 @@ pub const CS_ALIASES: &[&str] = &["Cs", "C_s", "CO2_s", "Ca", "CO2_a", "CO2", "C
 /// µmol mol⁻¹.
 pub const CS_DEFAULT: f64 = 420.0;
 
-/// `SOIL_PSI_ALIASES`: `P_ALIASES` followed by the soil-specific names.
-fn soil_psi_aliases() -> Vec<&'static str> {
-    P_ALIASES
+/// Water-potential names that are combined with a unit suffix ("Psi (kPa)", "h_cm").
+const SOIL_PSI_BASES: &[&str] = &[
+    "psi",
+    "ψ",
+    "wp",
+    "water_potential",
+    "matric_potential",
+    "matric",
+    "suction",
+    "tension",
+    "pressure_head",
+    "head",
+    "h",
+];
+/// Unit suffixes `soil_unit_in_name` recognises, so the column found is also read in its unit.
+const SOIL_PSI_UNITS: &[&str] = &[
+    "kPa", "hPa", "mbar", "bar", "MPa", "cm", "cmH2O", "m", "mH2O",
+];
+
+/// `P_ALIASES`, then the soil-specific names, then every water-potential name with a unit
+/// suffix. Column names are matched ignoring case, spaces and punctuation, so "psikpa" finds
+/// `Psi (kPa)`, `psi_kPa` and `PSI kPa`.
+fn soil_psi_aliases() -> Vec<String> {
+    let mut out: Vec<String> = P_ALIASES
         .iter()
         .chain(SOIL_EXTRA_PSI_ALIASES)
-        .copied()
-        .collect()
+        .map(|s| s.to_string())
+        .collect();
+    for base in SOIL_PSI_BASES {
+        for unit in SOIL_PSI_UNITS {
+            out.push(format!("{base}_{unit}"));
+        }
+    }
+    out
 }
 
 /// Runs of whitespace collapsed to one space.
@@ -838,7 +865,8 @@ pub fn parse_medlyn(text: &str) -> Result<ParsedFitData, String> {
 pub fn parse_soil_retention(text: &str) -> Result<ParsedFitData, String> {
     let t = read_csv(text)?;
 
-    let p_field = t.find_field(&soil_psi_aliases());
+    let aliases = soil_psi_aliases();
+    let p_field = t.find_field(&aliases.iter().map(String::as_str).collect::<Vec<_>>());
     let t_field = t.find_field(THETA_ALIASES);
     let mut missing = Vec::new();
     if p_field.is_none() {
